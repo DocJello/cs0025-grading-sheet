@@ -1,14 +1,13 @@
 import React, { createContext, useState, useContext, ReactNode, useEffect } from 'react';
 import { User, UserRole, GradeSheet, GradeSheetStatus, PanelGrades } from '../types';
-import { Client, Account, Databases, ID, Query, Functions, Models } from 'appwrite';
+import { Client, Account, Databases, ID, Query, Functions, Models, AppwriteException } from 'appwrite';
 
 // --- Appwrite Configuration ---
-// IMPORTANT: Replace these placeholder values with your actual Appwrite credentials.
-const APPWRITE_ENDPOINT = 'https://fra.cloud.appwrite.io/v1'; // e.g., 'https://cloud.appwrite.io/v1'
+const APPWRITE_ENDPOINT = 'https://fra.cloud.appwrite.io/v1';
 const APPWRITE_PROJECT_ID = '68cc1bef00127055db1b';
 const DATABASE_ID = '68d09abf000ecadf16f1';
 const PROFILES_COLLECTION_ID = 'profiles';
-const GRADESHEETS_COLLECTION_ID = 'gradesheets';
+const GRADESHEETS_COLLECTION_ID = 'gradeSheets'; 
 const VENUES_COLLECTION_ID = 'venues';
 const GRADES_COLLECTION_ID = 'grades';
 
@@ -20,11 +19,9 @@ const DELETE_USER_FUNCTION_ID = 'placeholder';
 
 
 // Initialize Appwrite Client
-const client = new Client();
-
-if (APPWRITE_ENDPOINT !== 'https://fra.cloud.appwrite.io/v1' && APPWRITE_PROJECT_ID !== '68cc1bef00127055db1b') {
-    client.setEndpoint(APPWRITE_ENDPOINT).setProject(APPWRITE_PROJECT_ID);
-}
+const client = new Client()
+    .setEndpoint(APPWRITE_ENDPOINT)
+    .setProject(APPWRITE_PROJECT_ID);
 
 const account = new Account(client);
 const databases = new Databases(client);
@@ -47,13 +44,20 @@ const safeJsonParse = (jsonString: string | null | undefined, defaultValue: any)
     }
 };
 
+interface AppError {
+    type: 'CORS' | 'NOT_FOUND' | 'PERMISSION' | 'GENERIC' | 'PROFILE_NOT_FOUND';
+    message: string;
+    context?: string; // e.g., the name of the collection that was not found
+}
+
+
 interface AppContextType {
     currentUser: User | null;
     users: User[];
     gradeSheets: GradeSheet[];
     venues: string[];
     isLoading: boolean;
-    error: Error | null;
+    error: AppError | null;
     retryLoad: () => void;
     login: (email: string, pass: string) => Promise<void>;
     logout: () => void;
@@ -77,50 +81,42 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     const [gradeSheets, setGradeSheets] = useState<GradeSheet[]>([]);
     const [venues, setVenues] = useState<string[]>([]);
     const [isLoading, setIsLoading] = useState(true);
-    const [error, setError] = useState<Error | null>(null);
+    const [error, setError] = useState<AppError | null>(null);
 
     const loadAppData = async () => {
         setIsLoading(true);
         setError(null);
 
-        if (APPWRITE_PROJECT_ID === '68cc1bef00127055db1b') {
-            const err = new Error('Appwrite credentials are not configured in context/AppContext.tsx');
-            err.name = 'ConfigurationError';
-            setError(err);
-            setIsLoading(false);
-            return;
-        }
-
         try {
             const authUser = await account.get();
             
+            const profileResponse = await databases.listDocuments(DATABASE_ID!, PROFILES_COLLECTION_ID!, [Query.equal('userId', authUser.$id)]);
+            if (profileResponse.documents.length === 0) {
+                 throw new AppwriteException("Your user profile was not found in the 'profiles' database collection. Please ask an administrator to create it.", 404, 'PROFILE_NOT_FOUND');
+            }
+            const userProfile = fromAppwriteDocument(profileResponse.documents[0]);
+            
+            // Set current user early so UI can render their name
+            setCurrentUser({ id: authUser.$id, email: authUser.email, name: userProfile.name, role: userProfile.role });
+
+            // Now fetch the rest of the data
             const [
-                profileResponse,
                 allUsersDocs,
                 allSheetsDocs,
                 allVenuesDocs,
                 allGradesDocs
             ] = await Promise.all([
-                databases.listDocuments(DATABASE_ID!, PROFILES_COLLECTION_ID!, [Query.equal('userId', authUser.$id)]),
                 fetchAllDocuments(DATABASE_ID!, PROFILES_COLLECTION_ID!),
                 fetchAllDocuments(DATABASE_ID!, GRADESHEETS_COLLECTION_ID!),
                 fetchAllDocuments(DATABASE_ID!, VENUES_COLLECTION_ID!),
-                fetchAllDocuments(DATABASE_ID!, GRADES_COLLECTION_ID!) // Fetch all grade documents
+                fetchAllDocuments(DATABASE_ID!, GRADES_COLLECTION_ID!)
             ]);
-
-            if (profileResponse.documents.length === 0) {
-                 throw new Error("Your user profile could not be found in the database. Please contact an administrator to have it created.");
-            }
-            const userProfile = fromAppwriteDocument(profileResponse.documents[0]);
-            
-            setCurrentUser({ id: authUser.$id, email: authUser.email, name: userProfile.name, role: userProfile.role });
             
             setUsers(allUsersDocs.map(doc => {
                  const profile = fromAppwriteDocument(doc);
                  return { id: profile.userId, name: profile.name, email: profile.email, role: profile.role };
             }));
 
-            // Create a lookup map for grades for efficient merging
             const gradesMap: { [gradeSheetId: string]: { [panelId: string]: PanelGrades } } = {};
             allGradesDocs.forEach(doc => {
                 const grade = doc as any;
@@ -146,12 +142,25 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
 
         } catch (err: any) {
             console.error("Failed to load app data", err);
-            if (err.code === 401 && !err.message) {
-                 setError(new Error("Your session has expired. Please log in again."));
+            setCurrentUser(null); // Log out user on error
+            
+            // --- Intelligent Error Diagnosis ---
+            if (err instanceof AppwriteException) {
+                if (err.type === 'PROFILE_NOT_FOUND') {
+                    setError({ type: 'PROFILE_NOT_FOUND', message: err.message });
+                } else if (err.code === 404) {
+                    const collectionName = err.message.match(/Collection with ID '([^']*)'/)
+                    setError({ type: 'NOT_FOUND', message: `A required database collection was not found. Please check your Appwrite setup.`, context: collectionName ? collectionName[1] : 'Unknown' });
+                } else if (err.code === 401 || err.code === 403) {
+                     setError({ type: 'PERMISSION', message: `You do not have permission to access a required resource. Please check the permissions for your collections in Appwrite.`, context: err.message });
+                } else {
+                    setError({ type: 'GENERIC', message: err.message });
+                }
+            } else if (err instanceof TypeError || (err.message && err.message.toLowerCase().includes('failed to fetch'))) {
+                 setError({ type: 'CORS', message: 'A network error occurred. This is often a CORS issue.' });
             } else {
-                 setError(err as Error);
+                 setError({ type: 'GENERIC', message: err.message || 'An unknown error occurred.' });
             }
-            setCurrentUser(null);
         } finally {
              setIsLoading(false);
         }
@@ -166,10 +175,16 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
             if (lastId) {
                 currentQueries.push(Query.cursorAfter(lastId));
             }
-            const response = await databases.listDocuments(dbId, collectionId, currentQueries);
-            documents.push(...response.documents);
-            if (response.documents.length < 100) break;
-            lastId = response.documents[response.documents.length - 1].$id;
+            try {
+                const response = await databases.listDocuments(dbId, collectionId, currentQueries);
+                documents.push(...response.documents);
+                if (response.documents.length < 100) break;
+                lastId = response.documents[response.documents.length - 1].$id;
+            } catch (e: any) {
+                // Add context to the error before re-throwing
+                e.message = `Failed while fetching documents from collection '${collectionId}': ${e.message}`;
+                throw e;
+            }
         }
         return documents;
     };
@@ -216,11 +231,9 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         const updatedSheetWithStatus = { ...sheet, status: updateGradeSheetStatus(sheet) };
         const { id, panel1Grades, panel2Grades, ...data } = updatedSheetWithStatus;
         
-        // 1. Update the main gradesheet document (without grades)
         const payload = { ...data, proponents: JSON.stringify(data.proponents) };
         await databases.updateDocument(DATABASE_ID!, GRADESHEETS_COLLECTION_ID!, id, payload);
 
-        // 2. Upsert (update or create) the grade documents for each panel
         const upsertGrades = async (grades: PanelGrades | undefined, panelId: string) => {
             if (!grades || !panelId) return;
             try {
@@ -250,8 +263,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
             upsertGrades(panel1Grades, sheet.panel1Id),
             upsertGrades(panel2Grades, sheet.panel2Id)
         ]);
-
-        // 3. Update local state
+        
         setGradeSheets(prev => prev.map(s => s.id === id ? updatedSheetWithStatus : s));
     };
 
@@ -260,11 +272,10 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         const payload = { ...newSheetData, proponents: JSON.stringify(newSheetData.proponents) };
         const newDoc = await databases.createDocument(DATABASE_ID!, GRADESHEETS_COLLECTION_ID!, ID.unique(), payload);
         const newSheet = fromAppwriteDocument(newDoc);
-        setGradeSheets(prev => [...prev, { ...newSheet, proponents: safeJsonParse(newSheet.proponents, []), panel1Grades: null, panel2Grades: null }]);
+        setGradeSheets(prev => [...prev, { ...newSheet, proponents: safeJsonParse(newSheet.proponents, []), panel1Grades: undefined, panel2Grades: undefined }]);
     };
     
     const deleteGradeSheet = async (sheetId: string) => {
-        // Also delete associated grade documents
         const gradeDocs = await databases.listDocuments(DATABASE_ID!, GRADES_COLLECTION_ID!, [Query.equal('gradeSheetId', sheetId)]);
         await Promise.all(gradeDocs.documents.map(doc => databases.deleteDocument(DATABASE_ID!, GRADES_COLLECTION_ID!, doc.$id)));
 
@@ -274,30 +285,23 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
 
     const addUser = async (userData: Omit<User, 'id'> & { password?: string }) => {
         if (CREATE_USER_FUNCTION_ID === 'placeholder') {
-            throw new Error("Admin function IDs are not configured in environment variables.");
+            throw new Error("Admin function IDs are not configured. Please contact the developer.");
         }
         await functions.createExecution(CREATE_USER_FUNCTION_ID, JSON.stringify(userData));
-        const allUsersDocs = await fetchAllDocuments(DATABASE_ID!, PROFILES_COLLECTION_ID!);
-        setUsers(allUsersDocs.map(doc => {
-                 const profile = fromAppwriteDocument(doc);
-                 return { id: profile.userId, name: profile.name, email: profile.email, role: profile.role };
-        }));
+        await loadAppData();
     };
 
     const updateUser = async (user: User & { password?: string }) => {
         if (UPDATE_USER_FUNCTION_ID === 'placeholder') {
-            throw new Error("Admin function IDs are not configured in environment variables.");
+            throw new Error("Admin function IDs are not configured. Please contact the developer.");
         }
         await functions.createExecution(UPDATE_USER_FUNCTION_ID, JSON.stringify(user));
-        setUsers(prev => prev.map(u => u.id === user.id ? { id: user.id, email: user.email, name: user.name, role: user.role } : u));
-        if (currentUser?.id === user.id) {
-           setCurrentUser(prev => prev ? { ...prev, name: user.name, role: user.role } : null);
-        }
+        await loadAppData();
     };
     
     const deleteUser = async (userId: string) => {
         if (DELETE_USER_FUNCTION_ID === 'placeholder') {
-            throw new Error("Admin function IDs are not configured in environment variables.");
+            throw new Error("Admin function IDs are not configured. Please contact the developer.");
         }
         await functions.createExecution(DELETE_USER_FUNCTION_ID, JSON.stringify({ userId }));
         setUsers(prev => prev.filter(u => u.id !== userId));
