@@ -1,56 +1,52 @@
 import { sql } from '@vercel/postgres';
 import { User } from '../types';
 
-export const config = {
-  runtime: 'edge',
-};
-
-export default async function handler(request: Request) {
-  const { method } = request;
+export default async function handler(req: any, res: any) {
+  const { method, body, query } = req;
 
   try {
     switch (method) {
       case 'GET': {
         const users = await sql`SELECT * FROM users ORDER BY name;`;
-        return new Response(JSON.stringify(users.rows), { status: 200, headers: { 'Content-Type': 'application/json' } });
+        return res.status(200).json(users.rows);
       }
 
       case 'POST': {
-        const newUser: Omit<User, 'id'> = await request.json();
+        const newUser: Omit<User, 'id'> = body;
         const id = `u_${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
         await sql`
           INSERT INTO users (id, name, email, role, "passwordHash")
           VALUES (${id}, ${newUser.name}, ${newUser.email}, ${newUser.role}, ${newUser.passwordHash});
         `;
         const result = await sql`SELECT * FROM users WHERE id = ${id};`;
-        return new Response(JSON.stringify(result.rows[0]), { status: 201, headers: { 'Content-Type': 'application/json' } });
+        return res.status(201).json(result.rows[0]);
       }
 
       case 'PUT': {
-        const user: User = await request.json();
+        const user: User = body;
         await sql`
           UPDATE users
           SET name = ${user.name}, email = ${user.email}, role = ${user.role}, "passwordHash" = ${user.passwordHash}
           WHERE id = ${user.id};
         `;
         const result = await sql`SELECT * FROM users WHERE id = ${user.id};`;
-        return new Response(JSON.stringify(result.rows[0]), { status: 200, headers: { 'Content-Type': 'application/json' } });
+        return res.status(200).json(result.rows[0]);
       }
 
       case 'DELETE': {
-        const host = request.headers.get('host');
-        const requestUrl = new URL(request.url, `https://${host}`);
-        const id = requestUrl.searchParams.get('id');
-
+        const { id } = query;
         if (!id) {
-          return new Response(JSON.stringify({ error: 'User ID is required' }), { status: 400, headers: { 'Content-Type': 'application/json' } });
+          return res.status(400).json({ error: 'User ID is required' });
         }
-        await sql`DELETE FROM users WHERE id = ${id};`;
-        return new Response(null, { status: 204 });
+        // req.query.id can be a string or an array of strings
+        const userId = Array.isArray(id) ? id[0] : id;
+        await sql`DELETE FROM users WHERE id = ${userId};`;
+        return res.status(204).send(null);
       }
 
       default:
-        return new Response(JSON.stringify({ message: 'Method not allowed' }), { status: 405, headers: { 'Content-Type': 'application/json' } });
+        res.setHeader('Allow', ['GET', 'POST', 'PUT', 'DELETE']);
+        return res.status(405).end(`Method ${method} Not Allowed`);
     }
   } catch (error) {
     console.error('API Error in /api/users:', error);
@@ -64,6 +60,6 @@ export default async function handler(request: Request) {
         }
     }
     
-    return new Response(JSON.stringify({ error: errorMessage }), { status: 500, headers: { 'Content-Type': 'application/json' } });
+    return res.status(500).json({ error: errorMessage });
   }
 }

@@ -1,18 +1,15 @@
 import { sql } from '@vercel/postgres';
 
-export const config = {
-  runtime: 'edge',
-};
-
-export default async function handler(request: Request) {
-  if (request.method !== 'POST') {
-    return new Response(JSON.stringify({ message: 'Method not allowed' }), { status: 405 });
+export default async function handler(req: any, res: any) {
+  if (req.method !== 'POST') {
+    res.setHeader('Allow', ['POST']);
+    return res.status(405).end(`Method ${req.method} Not Allowed`);
   }
   
   try {
-    const { email, pass } = await request.json();
+    const { email, pass } = req.body;
     if (!email || !pass) {
-        return new Response(JSON.stringify({ error: 'Email and password are required' }), { status: 400 });
+        return res.status(400).json({ error: 'Email and password are required' });
     }
 
     // Use "passwordHash" in quotes to match the column name
@@ -24,9 +21,9 @@ export default async function handler(request: Request) {
       const user = rows[0];
       // Note: In a real app, we would generate and return a JWT here.
       // For this step, we just return the user object for simplicity.
-      return new Response(JSON.stringify(user), { status: 200, headers: { 'Content-Type': 'application/json' } });
+      return res.status(200).json(user);
     } else {
-      return new Response(JSON.stringify({ error: 'Invalid email or password' }), { status: 401, headers: { 'Content-Type': 'application/json' } });
+      return res.status(401).json({ error: 'Invalid email or password' });
     }
   } catch (error) {
     console.error('Login Error:', error);
@@ -37,6 +34,6 @@ export default async function handler(request: Request) {
             errorMessage = 'Database connection is not configured. Please ensure Vercel Postgres is set up and environment variables are linked to your project.';
         }
     }
-    return new Response(JSON.stringify({ error: errorMessage }), { status: 500, headers: { 'Content-Type': 'application/json' } });
+    return res.status(500).json({ error: errorMessage });
   }
 }
