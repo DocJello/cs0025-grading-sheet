@@ -3,14 +3,14 @@ import { User, UserRole, GradeSheet, GradeSheetStatus, PanelGrades } from '../ty
 import { Client, Account, Databases, ID, Query, Functions, Models } from 'appwrite';
 
 // --- Appwrite Configuration ---
-// Read from environment variables for Vercel deployment
-const APPWRITE_ENDPOINT = process.env.REACT_APP_APPWRITE_ENDPOINT;
-const APPWRITE_PROJECT_ID = process.env.REACT_APP_APPWRITE_PROJECT_ID;
-const DATABASE_ID = process.env.REACT_APP_DATABASE_ID;
-const PROFILES_COLLECTION_ID = process.env.REACT_APP_PROFILES_COLLECTION_ID;
-const GRADESHEETS_COLLECTION_ID = process.env.REACT_APP_GRADESHEETS_COLLECTION_ID;
-const VENUES_COLLECTION_ID = process.env.REACT_APP_VENUES_COLLECTION_ID;
-const GRADES_COLLECTION_ID = process.env.REACT_APP_GRADES_COLLECTION_ID;
+// IMPORTANT: Replace these placeholder values with your actual Appwrite credentials.
+const APPWRITE_ENDPOINT = 'https://fra.cloud.appwrite.io/v1'; // e.g., 'https://cloud.appwrite.io/v1'
+const APPWRITE_PROJECT_ID = '68cc1bef00127055db1b';
+const DATABASE_ID = '68d09abf000ecadf16f1';
+const PROFILES_COLLECTION_ID = 'profiles';
+const GRADESHEETS_COLLECTION_ID = 'gradesheets';
+const VENUES_COLLECTION_ID = 'venues';
+const GRADES_COLLECTION_ID = 'grades';
 
 
 // These function IDs are needed for admin/adviser user management.
@@ -22,7 +22,7 @@ const DELETE_USER_FUNCTION_ID = 'placeholder';
 // Initialize Appwrite Client
 const client = new Client();
 
-if (APPWRITE_ENDPOINT && APPWRITE_PROJECT_ID) {
+if (APPWRITE_ENDPOINT !== 'https://fra.cloud.appwrite.io/v1' && APPWRITE_PROJECT_ID !== '68cc1bef00127055db1b') {
     client.setEndpoint(APPWRITE_ENDPOINT).setProject(APPWRITE_PROJECT_ID);
 }
 
@@ -83,19 +83,8 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         setIsLoading(true);
         setError(null);
 
-        // Configuration Check
-        const missingVars = [
-            'REACT_APP_APPWRITE_ENDPOINT',
-            'REACT_APP_APPWRITE_PROJECT_ID',
-            'REACT_APP_DATABASE_ID',
-            'REACT_APP_PROFILES_COLLECTION_ID',
-            'REACT_APP_GRADESHEETS_COLLECTION_ID',
-            'REACT_APP_VENUES_COLLECTION_ID',
-            'REACT_APP_GRADES_COLLECTION_ID'
-        ].filter(v => !process.env[v]);
-
-        if (missingVars.length > 0) {
-            const err = new Error(`Missing environment variables: ${missingVars.join(', ')}`);
+        if (APPWRITE_PROJECT_ID === '68cc1bef00127055db1b') {
+            const err = new Error('Appwrite credentials are not configured in context/AppContext.tsx');
             err.name = 'ConfigurationError';
             setError(err);
             setIsLoading(false);
