@@ -7,7 +7,7 @@ const APPWRITE_ENDPOINT = 'https://fra.cloud.appwrite.io/v1';
 const APPWRITE_PROJECT_ID = '68cc1bef00127055db1b';
 const DATABASE_ID = '68d09abf000ecadf16f1';
 const PROFILES_COLLECTION_ID = 'profiles';
-const GRADESHEETS_COLLECTION_ID = 'gradeSheets'; 
+const GRADESHEETS_COLLECTION_ID = 'gradesheets'; 
 const VENUES_COLLECTION_ID = 'venues';
 const GRADES_COLLECTION_ID = 'grades';
 
@@ -88,6 +88,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         setError(null);
 
         try {
+            // This will throw an error if the user is not logged in.
             const authUser = await account.get();
             
             const profileResponse = await databases.listDocuments(DATABASE_ID!, PROFILES_COLLECTION_ID!, [Query.equal('userId', authUser.$id)]);
@@ -141,25 +142,32 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
             setVenues(allVenuesDocs.map(doc => (doc as any).name));
 
         } catch (err: any) {
-            console.error("Failed to load app data", err);
-            setCurrentUser(null); // Log out user on error
-            
-            if (err instanceof AppwriteException) {
-                 if (err.type === 'PROFILE_NOT_FOUND') {
-                    setError({ type: 'PROFILE_NOT_FOUND', message: err.message });
-                } else if (err.code === 404) {
-                    const collectionName = err.message.match(/Collection with ID '([^']*)'/);
-                    setError({ type: 'NOT_FOUND', message: `A required database collection was not found. Please check your Appwrite setup.`, context: collectionName ? collectionName[1] : 'Unknown' });
-                } else if (err.code === 401 || err.code === 403) {
-                     setError({ type: 'PERMISSION', message: `You do not have permission to access a required resource. Please check the permissions for your collections in Appwrite.`, context: err.message });
-                } else {
-                    setError({ type: 'NETWORK_ERROR', message: `An Appwrite error occurred: ${err.message}` });
+             // This is the critical fix: If the error is a 401 (not logged in), it's not a fatal error.
+            // We just set the user to null and let the app show the login screen.
+            if (err instanceof AppwriteException && err.code === 401) {
+                setCurrentUser(null);
+            } else {
+                // For all other errors, we treat them as a real problem and show an error screen.
+                console.error("Failed to load app data", err);
+                setCurrentUser(null); // Log out user on any real error
+                
+                if (err instanceof AppwriteException) {
+                     if (err.type === 'PROFILE_NOT_FOUND') {
+                        setError({ type: 'PROFILE_NOT_FOUND', message: err.message });
+                    } else if (err.code === 404) {
+                        const collectionName = err.message.match(/Collection with ID '([^']*)'/);
+                        setError({ type: 'NOT_FOUND', message: `A required database collection was not found. Please check your Appwrite setup.`, context: collectionName ? collectionName[1] : 'Unknown' });
+                    } else if (err.code === 403) {
+                         setError({ type: 'PERMISSION', message: `You do not have permission to access a required resource. Please check the permissions for your collections in Appwrite.`, context: err.message });
+                    } else {
+                        setError({ type: 'NETWORK_ERROR', message: `An Appwrite error occurred: ${err.message}` });
+                    }
+                } else if (err instanceof TypeError && err.message.includes('Failed to fetch')) {
+                     setError({ type: 'NETWORK_ERROR', message: "Failed to fetch. This is likely a CORS issue or a network block. Please follow the troubleshooting guide." });
                 }
-            } else if (err instanceof TypeError && err.message.includes('Failed to fetch')) {
-                 setError({ type: 'NETWORK_ERROR', message: "Failed to fetch. This is likely a CORS issue or a network block. Please follow the troubleshooting guide." });
-            }
-            else {
-                 setError({ type: 'NETWORK_ERROR', message: err.message || 'An unknown network error occurred.' });
+                else {
+                     setError({ type: 'NETWORK_ERROR', message: err.message || 'An unknown network error occurred.' });
+                }
             }
         } finally {
              setIsLoading(false);
