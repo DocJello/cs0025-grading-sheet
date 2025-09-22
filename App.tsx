@@ -29,44 +29,6 @@ const LoadingSpinner: React.FC = () => (
     </div>
 );
 
-const EnvironmentVariableGuide: React.FC<{ error: Error; onRetry: () => void }> = ({ error, onRetry }) => {
-    const requiredVars = error.message.replace('Missing environment variables: ', '').split(', ');
-
-    return (
-        <div className="flex items-center justify-center min-h-screen bg-gray-100 p-4">
-            <div className="w-full max-w-3xl p-8 bg-white shadow-lg rounded-lg border-t-4 border-yellow-500">
-                <h1 className="text-2xl font-bold text-gray-800 mb-2">Configuration Needed</h1>
-                <p className="text-gray-600 mb-6">
-                    Welcome! To connect this application to your Appwrite backend, you need to set up your environment variables in your hosting provider (e.g., Vercel, Netlify).
-                </p>
-
-                <div className="bg-gray-50 p-4 rounded-lg">
-                    <h2 className="text-lg font-semibold text-gray-700 mb-3">Required Variables:</h2>
-                    <ul className="space-y-2">
-                        {requiredVars.map(v => (
-                            <li key={v} className="font-mono text-sm bg-gray-200 p-2 rounded">{v}</li>
-                        ))}
-                    </ul>
-                </div>
-
-                <div className="mt-6 text-sm text-gray-700">
-                    <p className="font-semibold mb-2">How to find these values:</p>
-                    <ul className="list-disc list-inside space-y-1">
-                        <li><strong>Project & Endpoint IDs:</strong> Found in your Appwrite project's 'Settings' page.</li>
-                        <li><strong>Database & Collection IDs:</strong> Found by navigating to the 'Databases' section and clicking on your specific database and collections.</li>
-                    </ul>
-                </div>
-
-                <div className="mt-8 text-center">
-                    <button onClick={onRetry} className="px-8 py-3 bg-green-700 text-white font-semibold rounded-md hover:bg-green-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500">
-                        Retry Connection
-                    </button>
-                </div>
-            </div>
-        </div>
-    );
-};
-
 const GenericErrorDisplay: React.FC<{ error: Error, onRetry: () => void }> = ({ error, onRetry }) => (
     <div className="flex items-center justify-center min-h-screen bg-gray-100 p-4">
         <div className="w-full max-w-2xl p-8 bg-white shadow-lg rounded-lg border-t-4 border-red-600 text-center">
@@ -183,12 +145,7 @@ const AppContent: React.FC = () => {
     }
     
     if (error) {
-        if (error.name === 'ConfigurationError') {
-             return <EnvironmentVariableGuide error={error} onRetry={retryLoad} />;
-        }
-        if (!currentUser) {
-            return <GenericErrorDisplay error={error} onRetry={retryLoad} />;
-        }
+        return <GenericErrorDisplay error={error} onRetry={retryLoad} />;
     }
     
     if (!currentUser) {
