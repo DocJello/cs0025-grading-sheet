@@ -155,7 +155,10 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
                 } else {
                     setError({ type: 'NETWORK_ERROR', message: `An Appwrite error occurred: ${err.message}` });
                 }
-            } else {
+            } else if (err instanceof TypeError && err.message.includes('Failed to fetch')) {
+                 setError({ type: 'NETWORK_ERROR', message: "Failed to fetch. This is likely a CORS issue or a network block. Please follow the troubleshooting guide." });
+            }
+            else {
                  setError({ type: 'NETWORK_ERROR', message: err.message || 'An unknown network error occurred.' });
             }
         } finally {
