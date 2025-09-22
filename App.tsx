@@ -10,6 +10,7 @@ import UserManagement from './pages/UserManagement';
 import Masterlist from './pages/Masterlist';
 import ChangePassword from './pages/ChangePassword';
 import GroupManagement from './pages/GroupManagement';
+import Setup from './pages/Setup';
 
 // Import icons for sidebar
 import { DashboardIcon, UsersIcon, ListIcon, DocumentAddIcon, KeyIcon } from './components/Icons';
@@ -94,7 +95,7 @@ const Sidebar: React.FC<{
 
 
 const AppContent: React.FC = () => {
-    const { currentUser, isLoading } = useAppContext();
+    const { currentUser, isLoading, users } = useAppContext();
     const [page, setPage] = useState<Page>('dashboard');
     const [selectedGradeSheetId, setSelectedGradeSheetId] = useState<string>('');
 
@@ -104,6 +105,11 @@ const AppContent: React.FC = () => {
                 <div className="animate-spin rounded-full h-24 w-24 border-t-4 border-b-4 border-green-700"></div>
             </div>
         );
+    }
+    
+    // If loading is finished and there are no users, the database is likely not initialized.
+    if (!isLoading && users.length === 0) {
+        return <Setup />;
     }
 
     if (!currentUser) {

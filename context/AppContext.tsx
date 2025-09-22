@@ -22,6 +22,7 @@ interface AppContextType {
     deleteUser: (userId: string) => Promise<void>;
     changePassword: (oldPass: string, newPass: string) => Promise<string>;
     addVenue: (venue: string) => void;
+    setupDatabase: () => Promise<string>;
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
@@ -58,15 +59,14 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
             setUsers(data);
         } catch (error) {
             console.error("Critical error fetching users:", error);
-            // In a real app, you might want to set a global error state here
-            // to render an error message to the user, preventing them from using a broken app.
+            // If the user fetch fails, it might be because the database isn't set up.
+            // We set users to an empty array to allow the UI to show the setup page.
+            setUsers([]);
         }
     };
 
     useEffect(() => {
         setIsLoading(true);
-        // In a real app with auth tokens, you'd verify the token here to restore a session.
-        // For now, we just fetch the list of all users on initial load.
         fetchUsers().finally(() => setIsLoading(false));
     }, []);
 
@@ -95,10 +95,26 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
             return "Login request could not be completed. Check your network connection.";
         }
     };
+    
+    const setupDatabase = async (): Promise<string> => {
+        try {
+            const response = await fetch('/api/setup', {
+                method: 'POST',
+            });
+
+            if (!response.ok) {
+                return await getApiErrorMessage(response);
+            }
+            
+            return ""; // Success
+        } catch (error) {
+            console.error('Database setup failed:', error);
+            return "Setup request could not be completed. Check your network connection or server logs.";
+        }
+    };
 
     const logout = () => {
         setCurrentUser(null);
-        // In a real app, this would also call a backend endpoint to invalidate a session token
     };
 
     const findUserById = (id: string): User | undefined => users.find(u => u.id === id);
@@ -204,8 +220,6 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
                 return await getApiErrorMessage(response);
             }
 
-            // Also update the passwordHash on the currentUser object in the state
-            // to keep the client-side state in sync without needing a re-fetch.
             const updatedUser = { ...currentUser, passwordHash: newPass };
             setCurrentUser(updatedUser);
             setUsers(prevUsers => prevUsers.map(u => u.id === currentUser.id ? updatedUser : u));
@@ -241,6 +255,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         deleteUser,
         changePassword,
         addVenue,
+        setupDatabase,
     };
 
     return <AppContext.Provider value={value}>{children}</AppContext.Provider>;
