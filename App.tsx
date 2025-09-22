@@ -22,89 +22,56 @@ const LoadingSpinner: React.FC = () => (
         <div className="flex flex-col items-center">
             <svg className="animate-spin -ml-1 mr-3 h-10 w-10 text-green-700" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                 <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 '0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
             </svg>
             <p className="mt-4 text-lg text-gray-600">Loading Application...</p>
         </div>
     </div>
 );
 
-const DiagnosticErrorDisplay: React.FC = () => {
+const ConnectionErrorGuide: React.FC = () => {
     const { error, retryLoad } = useAppContext();
-
-    if (!error) return null;
-
-    const renderErrorGuide = () => {
-        switch (error.type) {
-            case 'CORS':
-                return (
-                    <div>
-                        <h2 className="text-xl font-bold text-gray-800 mb-2">Connection Error (CORS)</h2>
-                        <p className="text-gray-600 mb-4">The application cannot connect to the Appwrite server. This is usually because your website's domain has not been added to your Appwrite project's list of approved platforms.</p>
-                        <div className="bg-gray-50 p-4 rounded-lg text-left">
-                            <h3 className="font-semibold text-gray-700 mb-2">How to Fix:</h3>
-                            <ol className="list-decimal list-inside space-y-2 text-sm">
-                                <li>Go to your Appwrite project dashboard.</li>
-                                <li>On the <strong>Overview</strong> page, find the "Integrations" section and click <strong>Add Platform</strong>, then choose <strong>Web</strong>.</li>
-                                <li>In the <strong>Hostname</strong> field, enter your website's domain: <br/><code className="bg-gray-200 p-1 rounded font-mono text-xs">{window.location.hostname}</code></li>
-                                <li>Click <strong>Create</strong>. You may also need to add `localhost` for local testing.</li>
-                            </ol>
-                        </div>
-                    </div>
-                );
-            case 'NOT_FOUND':
-                return (
-                     <div>
-                        <h2 className="text-xl font-bold text-gray-800 mb-2">Collection Not Found</h2>
-                        <p className="text-gray-600 mb-4">A required database collection could not be found. This means there is a mismatch between the ID in the code and the ID in your Appwrite project.</p>
-                        <div className="bg-gray-50 p-4 rounded-lg text-left">
-                             <h3 className="font-semibold text-gray-700 mb-2">Details:</h3>
-                            <p className="mb-4">The application failed to find a collection with the ID: <br/><code className="bg-gray-200 p-1 rounded font-mono text-xs">{error.context}</code></p>
-                            <h3 className="font-semibold text-gray-700 mb-2">How to Fix:</h3>
-                            <ol className="list-decimal list-inside space-y-2 text-sm">
-                                <li>Go to your Appwrite project's <strong>Databases</strong> section.</li>
-                                <li>Find the collection that corresponds to this ID.</li>
-                                <li>Ensure the **Collection ID** in your Appwrite dashboard exactly matches the ID in the application code.</li>
-                            </ol>
-                        </div>
-                    </div>
-                );
-             case 'PROFILE_NOT_FOUND':
-                 return (
-                    <div>
-                        <h2 className="text-xl font-bold text-gray-800 mb-2">User Profile Not Found</h2>
-                        <p className="text-gray-600 mb-4">You have successfully logged in, but your corresponding user profile document is missing from the database.</p>
-                        <div className="bg-gray-50 p-4 rounded-lg text-left">
-                             <h3 className="font-semibold text-gray-700 mb-2">How to Fix:</h3>
-                            <ol className="list-decimal list-inside space-y-2 text-sm">
-                                <li>In Appwrite, go to the <strong>Auth</strong> section and copy your <strong>User ID</strong>.</li>
-                                <li>Go to the <strong>Databases</strong> section and navigate to the `profiles` collection.</li>
-                                <li>Click <strong>Create document</strong>.</li>
-                                <li>Paste your <strong>User ID</strong> into the `userId` field and fill out the other required fields (name, email, role).</li>
-                            </ol>
-                        </div>
-                    </div>
-                 );
-            default:
-                return (
-                     <div>
-                        <h2 className="text-xl font-bold text-gray-800 mb-2">Application Error</h2>
-                        <p className="text-gray-600 mb-4">An unexpected error occurred. Please try again.</p>
-                        <div className="bg-red-50 p-4 rounded text-sm text-red-700 font-mono text-left">
-                            <strong>Details:</strong> {error.message || 'An unknown error occurred.'}
-                        </div>
-                    </div>
-                );
-        }
-    };
+    const currentHostname = window.location.hostname;
     
     return (
         <div className="flex items-center justify-center min-h-screen bg-gray-100 p-4">
-            <div className="w-full max-w-2xl p-8 bg-white shadow-lg rounded-lg border-t-4 border-red-600">
-                {renderErrorGuide()}
+            <div className="w-full max-w-3xl p-8 bg-white shadow-lg rounded-lg border-t-4 border-red-600">
+                <h1 className="text-2xl font-bold text-gray-800 mb-2">Connection Error</h1>
+                <p className="text-gray-600 mb-6">
+                    The application could not connect to the Appwrite backend. This is usually caused by a misconfiguration in your Appwrite project or by an external factor like a browser extension. Please follow this checklist to resolve the issue.
+                </p>
+
+                <div className="space-y-6">
+                    {/* Step 1: CORS/Platform Settings */}
+                    <div className="bg-gray-50 p-4 rounded-lg">
+                        <h2 className="text-lg font-semibold text-gray-700">Step 1: Check Appwrite Platform Settings (CORS)</h2>
+                        <ol className="list-decimal list-inside space-y-2 mt-2 text-sm text-gray-600">
+                            <li>Go to your Appwrite project dashboard.</li>
+                            <li>On the <strong>Overview</strong> page, find the "Integrations" section and click <strong>Add Platform</strong>, then choose <strong>Web</strong>.</li>
+                            <li>
+                                In the <strong>Hostname</strong> field, add your Vercel domain. It is crucial to add both your main project domain and the specific deployment domain:
+                                <code className="block w-full bg-gray-200 p-2 mt-2 rounded font-mono text-xs">cs0025-gradesheet.vercel.app</code>
+                                <code className="block w-full bg-gray-200 p-2 mt-1 rounded font-mono text-xs">{currentHostname}</code>
+                            </li>
+                             <li>For local testing, also ensure you have a platform with the hostname: <code className="bg-gray-200 p-1 rounded font-mono text-xs">localhost</code></li>
+                        </ol>
+                    </div>
+
+                    {/* Step 2: External Factors */}
+                    <div className="bg-yellow-50 p-4 rounded-lg border border-yellow-200">
+                        <h2 className="text-lg font-semibold text-yellow-800">Step 2: Check for External Factors (Very Likely Cause)</h2>
+                        <p className="mt-2 text-sm text-yellow-700">If your Platform settings are correct, the problem is almost certainly one of these:</p>
+                        <ul className="list-disc list-inside space-y-2 mt-2 text-sm text-yellow-700">
+                            <li><strong>Browser Extensions:</strong> Security software, ad-blockers, or privacy extensions (like Trend Micro, uBlock Origin, Privacy Badger) can block the connection. <strong>Try temporarily disabling all extensions and reloading the page.</strong></li>
+                            <li><strong>Different Browser:</strong> Try opening the website in a different web browser (e.g., if you are using Chrome, try Firefox or Edge) to see if the issue is browser-specific.</li>
+                            <li><strong>Network Firewall:</strong> If you are on a corporate, school, or public Wi-Fi network, a firewall may be blocking the connection. Try accessing the site from a different network, like your mobile data hotspot.</li>
+                        </ul>
+                    </div>
+                </div>
+
                 <div className="mt-8 text-center">
                     <button onClick={retryLoad} className="px-8 py-3 bg-green-700 text-white font-semibold rounded-md hover:bg-green-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500">
-                        Try Again
+                        Retry Connection
                     </button>
                 </div>
             </div>
@@ -204,7 +171,7 @@ const AppContent: React.FC = () => {
     }
     
     if (error) {
-        return <DiagnosticErrorDisplay />;
+        return <ConnectionErrorGuide />;
     }
     
     if (!currentUser) {
