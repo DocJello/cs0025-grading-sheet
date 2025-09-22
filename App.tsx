@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { AppProvider, useAppContext } from './context/AppContext';
-import { UserRole, Page } from './types';
-import { DashboardIcon, UsersIcon, ListIcon, KeyIcon, DocumentAddIcon } from './components/Icons';
+import { Page, UserRole } from './types';
+
+// Import pages
 import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
 import GradingSheet from './pages/GradingSheet';
@@ -9,89 +10,52 @@ import UserManagement from './pages/UserManagement';
 import Masterlist from './pages/Masterlist';
 import GroupManagement from './pages/GroupManagement';
 import ChangePassword from './pages/ChangePassword';
+
+// Import components
 import Header from './components/Header';
-import { APP_NAME } from './constants';
+import { DashboardIcon, UsersIcon, ListIcon, DocumentAddIcon, KeyIcon } from './components/Icons';
 
-const ConnectionTroubleshootingGuide: React.FC<{ error: any; onRetry: () => void }> = ({ error, onRetry }) => {
-    // Attempt to get the specific Vercel deployment URL from the current window location
-    const currentHostname = window.location.hostname;
-    const mainVercelDomain = currentHostname.includes('vercel.app') ? currentHostname.split('-').slice(0, 2).join('-') + '.vercel.app' : 'your-project.vercel.app';
-    
-    return (
-        <div className="flex items-center justify-center min-h-screen bg-gray-100 p-4">
-            <div className="w-full max-w-3xl p-8 bg-white shadow-lg rounded-lg border-t-4 border-red-600">
-                <h1 className="text-2xl font-bold text-gray-800 mb-2">Connection Error</h1>
-                <p className="text-gray-600 mb-6">
-                    The application could not connect to the Appwrite backend. This is usually caused by a misconfiguration in your Appwrite project or by an external factor like a browser extension. Please follow this checklist to resolve the issue.
-                </p>
-
-                <div className="space-y-6">
-                    {/* Step 1: CORS Check */}
-                    <div className="p-4 bg-gray-50 rounded-lg">
-                        <h2 className="text-lg font-semibold text-gray-700">Step 1: Check Appwrite Platform Settings (CORS)</h2>
-                        <ol className="list-decimal list-inside mt-2 text-sm text-gray-600 space-y-2">
-                            <li>Go to your Appwrite project dashboard at <a href="https://cloud.appwrite.io" target="_blank" rel="noopener noreferrer" className="text-green-700 underline">cloud.appwrite.io</a>.</li>
-                            <li>On the <strong>Overview</strong> page, find the "Integrations" section and click <strong>Add Platform</strong>, then choose <strong>Web</strong>.</li>
-                            <li>In the <strong>Hostname</strong> field, add your Vercel domain. It is crucial to add both your main project domain and the specific deployment domain:
-                                <div className="font-mono bg-gray-200 p-2 rounded my-2 text-xs">
-                                    <p>{mainVercelDomain}</p>
-                                    <p>{currentHostname}</p>
-                                </div>
-                            </li>
-                            <li>For local testing, also ensure you have a platform with the hostname: <code className="font-mono bg-gray-200 px-1 rounded">localhost</code></li>
-                        </ol>
-                    </div>
-
-                    {/* Step 2: External Blockers Check */}
-                    <div className="p-4 bg-gray-50 rounded-lg">
-                         <h2 className="text-lg font-semibold text-gray-700">Step 2: Check for External Blockers</h2>
-                        <p className="mt-2 text-sm text-gray-600">If your Platform settings are correct, the connection is likely being blocked by software on your computer or network.</p>
-                        <ul className="list-disc list-inside mt-2 text-sm text-gray-600 space-y-2">
-                            <li>
-                                <strong>Test in an Incognito/Private Window:</strong> This is the most important test. It runs the browser without extensions (like ad-blockers or security tools like Trend Micro) which often cause this error. Press <code className="font-mono bg-gray-200 px-1 rounded">Ctrl+Shift+N</code> (or <code className="font-mono bg-gray-200 px-1 rounded">Cmd+Shift+N</code> on Mac) and try the website again.
-                            </li>
-                            <li>
-                                <strong>Try a Different Network:</strong> If Incognito mode doesn't work, try connecting through a different network (e.g., a mobile hotspot) to check if a school or work firewall is blocking the connection.
-                            </li>
-                        </ul>
-                    </div>
-                </div>
-
-                <div className="mt-8 text-center">
-                    <button onClick={onRetry} className="px-8 py-3 bg-green-700 text-white font-semibold rounded-md hover:bg-green-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500">
-                        I've checked everything, Try Again
-                    </button>
-                </div>
-            </div>
-        </div>
-    );
-};
-
-const MainContent: React.FC = () => {
+// A component for the main layout after login
+const MainApp: React.FC = () => {
     const { currentUser, isLoading, error, retryLoad } = useAppContext();
-    const [page, setPage] = = useState<Page>('dashboard');
-    const [selectedGradeSheetId, setSelectedGradeSheetId] = useState<string | null>(null);
+    const [page, setPage] = useState<Page>('dashboard');
+    const [activeGradeSheetId, setActiveGradeSheetId] = useState<string | null>(null);
 
     const navigateToGradeSheet = (id: string) => {
-        setSelectedGradeSheetId(id);
+        setActiveGradeSheetId(id);
         setPage('grading-sheet');
     };
-
+    
+    // This is the error boundary/loading screen for the whole app data loading process.
     if (isLoading) {
-        return (
-            <div className="flex items-center justify-center h-screen w-screen bg-gray-100">
-                <div className="text-center">
-                    <div className="w-16 h-16 border-4 border-dashed rounded-full animate-spin border-green-700 mx-auto"></div>
-                    <p className="mt-4 text-lg text-gray-700">Loading Application...</p>
+        return <div className="flex items-center justify-center h-screen"><div className="text-xl">Loading application...</div></div>;
+    }
+    
+    if (error) {
+         return (
+            <div className="flex items-center justify-center h-screen bg-red-50 text-red-800">
+                <div className="text-center p-8 max-w-lg mx-auto bg-white rounded-lg shadow-lg border border-red-200">
+                    <h1 className="text-2xl font-bold mb-4">Application Error</h1>
+                    <p className="mb-2">A problem occurred while loading the application data. This could be due to a network issue, an invalid configuration, or a server problem.</p>
+                    <p className="text-sm font-mono bg-red-100 p-3 rounded mb-6">{error.message}</p>
+                    {error.context && <p className="text-sm mb-6">Context: {error.context}</p>}
+                    <button onClick={retryLoad} className="px-6 py-2 bg-red-600 text-white rounded-md hover:bg-red-700">
+                        Try Again
+                    </button>
+                     <div className="text-left text-xs text-gray-600 mt-6 space-y-2">
+                        <p><strong>Troubleshooting:</strong></p>
+                        <ul className="list-disc list-inside">
+                            <li>If this is a <strong>CORS error</strong>, ensure you have added your application's hostname to your Appwrite project's platform list.</li>
+                             <li>If this is a <strong>'not found' error</strong>, verify that the database/collection IDs in <code>context/AppContext.tsx</code> are correct and exist in your Appwrite project.</li>
+                            <li>If this is a <strong>permission error</strong>, check the read/write permissions for your collections in Appwrite.</li>
+                        </ul>
+                    </div>
                 </div>
             </div>
         );
     }
 
-    if (error) {
-       return <ConnectionTroubleshootingGuide error={error} onRetry={retryLoad} />;
-    }
-    
+    // If we're not loading and there's no error, but also no user, show login.
     if (!currentUser) {
         return <Login />;
     }
@@ -101,7 +65,12 @@ const MainContent: React.FC = () => {
             case 'dashboard':
                 return <Dashboard navigateToGradeSheet={navigateToGradeSheet} />;
             case 'grading-sheet':
-                return selectedGradeSheetId ? <GradingSheet gradeSheetId={selectedGradeSheetId} setPage={setPage} /> : <Dashboard navigateToGradeSheet={navigateToGradeSheet} />;
+                if (activeGradeSheetId) {
+                    return <GradingSheet gradeSheetId={activeGradeSheetId} setPage={setPage} />;
+                }
+                // Fallback if no ID is set
+                setPage('dashboard'); 
+                return null;
             case 'user-management':
                 return <UserManagement />;
             case 'masterlist':
@@ -115,12 +84,41 @@ const MainContent: React.FC = () => {
         }
     };
 
+    // Sidebar navigation items
+    const navItems = [
+        { name: 'Dashboard', icon: DashboardIcon, page: 'dashboard', roles: [UserRole.ADMIN, UserRole.COURSE_ADVISER, UserRole.PANEL] },
+        { name: 'Masterlist', icon: ListIcon, page: 'masterlist', roles: [UserRole.ADMIN, UserRole.COURSE_ADVISER] },
+        { name: 'Group Management', icon: DocumentAddIcon, page: 'group-management', roles: [UserRole.ADMIN, UserRole.COURSE_ADVISER] },
+        { name: 'User Management', icon: UsersIcon, page: 'user-management', roles: [UserRole.ADMIN] },
+        { name: 'Change Password', icon: KeyIcon, page: 'change-password', roles: [UserRole.ADMIN, UserRole.COURSE_ADVISER, UserRole.PANEL] },
+    ].filter(item => item.roles.includes(currentUser.role));
+
     return (
-        <div className="flex h-screen bg-gray-100">
-            <Sidebar currentPage={page} setPage={setPage} />
-            <div className="flex-1 flex flex-col overflow-hidden">
-                <Header />
-                <main className="flex-1 overflow-x-hidden overflow-y-auto bg-gray-100 print:bg-white">
+        <div className="min-h-screen bg-gray-100">
+            <Header />
+            <div className="flex">
+                <aside className="w-64 bg-green-800 text-white flex-shrink-0 h-[calc(100vh-64px)] sticky top-16">
+                    <nav className="p-4">
+                        <ul>
+                            {navItems.map(item => (
+                                <li key={item.name} className="mb-2">
+                                    <button
+                                        onClick={() => setPage(item.page as Page)}
+                                        className={`w-full flex items-center p-3 rounded-lg transition-colors ${
+                                            page === item.page
+                                                ? 'bg-green-700 font-bold'
+                                                : 'hover:bg-green-700'
+                                        }`}
+                                    >
+                                        <item.icon className="w-6 h-6 mr-3" />
+                                        <span>{item.name}</span>
+                                    </button>
+                                </li>
+                            ))}
+                        </ul>
+                    </nav>
+                </aside>
+                <main className="flex-1 overflow-y-auto">
                     {renderPage()}
                 </main>
             </div>
@@ -128,65 +126,11 @@ const MainContent: React.FC = () => {
     );
 };
 
-
-const NavItem: React.FC<{
-    icon: React.ReactNode;
-    label: string;
-    isActive: boolean;
-    onClick: () => void;
-}> = ({ icon, label, isActive, onClick }) => (
-    <button
-        onClick={onClick}
-        className={`flex items-center w-full px-4 py-3 text-sm font-medium transition-colors duration-200 ${
-            isActive
-                ? 'bg-green-700 text-white'
-                : 'text-gray-200 hover:bg-green-800 hover:text-white'
-        }`}
-    >
-        {icon}
-        <span className="ml-3">{label}</span>
-    </button>
-);
-
-const Sidebar: React.FC<{ currentPage: Page, setPage: (page: Page) => void }> = ({ currentPage, setPage }) => {
-    const { currentUser } = useAppContext();
-
-    if (!currentUser) return null;
-    
-    const navItems: { page: Page; label: string; icon: React.ReactNode; roles: UserRole[] }[] = [
-        { page: 'dashboard', label: 'Dashboard', icon: <DashboardIcon className="w-6 h-6" />, roles: [UserRole.ADMIN, UserRole.COURSE_ADVISER, UserRole.PANEL] },
-        { page: 'masterlist', label: 'Masterlist', icon: <ListIcon className="w-6 h-6" />, roles: [UserRole.ADMIN, UserRole.COURSE_ADVISER] },
-        { page: 'group-management', label: 'Group Management', icon: <DocumentAddIcon className="w-6 h-6" />, roles: [UserRole.ADMIN, UserRole.COURSE_ADVISER] },
-        { page: 'user-management', label: 'User Management', icon: <UsersIcon className="w-6 h-6" />, roles: [UserRole.ADMIN, UserRole.COURSE_ADVISER] },
-        { page: 'change-password', label: 'Change Password', icon: <KeyIcon className="w-6 h-6" />, roles: [UserRole.ADMIN, UserRole.COURSE_ADVISER, UserRole.PANEL] },
-    ];
-    
-    const accessibleNavItems = navItems.filter(item => item.roles.includes(currentUser.role));
-
-    return (
-        <div className="flex flex-col w-64 bg-green-900 text-white h-screen z-30 shadow-lg no-print">
-            <div className="flex items-center justify-center h-16 border-b border-green-800">
-                <h1 className="text-lg font-bold">{APP_NAME}</h1>
-            </div>
-            <nav className="flex-1 py-4">
-                {accessibleNavItems.map(item => (
-                    <NavItem
-                        key={item.page}
-                        icon={item.icon}
-                        label={item.label}
-                        isActive={currentPage === item.page}
-                        onClick={() => setPage(item.page)}
-                    />
-                ))}
-            </nav>
-        </div>
-    );
-};
-
+// The main App component that includes the provider
 const App: React.FC = () => {
     return (
         <AppProvider>
-            <MainContent />
+            <MainApp />
         </AppProvider>
     );
 };
