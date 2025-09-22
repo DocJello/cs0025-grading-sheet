@@ -22,7 +22,7 @@ const getStatusColor = (status: GradeSheetStatus) => {
 };
 
 
-const GradeSheetCard: React.FC<{ sheet: GradeSheet, onView: () => void }> = ({ sheet, onView }) => {
+const GradeSheetCard: React.FC<{ sheet: GradeSheet; onView: () => void }> = ({ sheet, onView }) => {
     const { findUserById } = useAppContext();
     return (
         <div className="bg-white rounded-lg shadow-md hover:shadow-lg transition-shadow duration-300 overflow-hidden">
@@ -54,12 +54,9 @@ const GradeSheetCard: React.FC<{ sheet: GradeSheet, onView: () => void }> = ({ s
 const Dashboard: React.FC<DashboardProps> = ({ navigateToGradeSheet }) => {
     const { currentUser, gradeSheets, getPanelSheets, findUserById } = useAppContext();
     const [filter, setFilter] = useState<string>('All');
+    const [isExporting, setIsExporting] = useState(false);
 
     if (!currentUser) return null;
-
-    const handleViewSheet = (id: string) => {
-        navigateToGradeSheet(id);
-    };
 
     const isAdminOrAdviser = currentUser.role === UserRole.ADMIN || currentUser.role === UserRole.COURSE_ADVISER;
     
@@ -94,6 +91,7 @@ const Dashboard: React.FC<DashboardProps> = ({ navigateToGradeSheet }) => {
     };
 
     const handleExportWord = () => {
+        setIsExporting(true);
         let tableHtml = `
             <table border="1" style="border-collapse: collapse; width: 100%; font-family: sans-serif;">
                 <thead>
@@ -125,13 +123,7 @@ const Dashboard: React.FC<DashboardProps> = ({ navigateToGradeSheet }) => {
         });
         tableHtml += `</tbody></table>`;
         
-        const header = "<html xmlns:o='urn:schemas-microsoft-com:office:office' "+
-        "xmlns:w='urn:schemas-microsoft-com:office:word' "+
-        "xmlns='http://www.w3.org/TR/REC-html40'>"+
-        "<head><meta charset='utf-8'><title>Dashboard Export</title></head><body>";
-        const footer = "</body></html>";
-        const sourceHTML = header + `<h1>Dashboard</h1>` + tableHtml + footer;
-
+        const sourceHTML = "<html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-com:office:word' xmlns='http://www.w3.org/TR/REC-html40'><head><meta charset='utf-8'><title>Dashboard Export</title></head><body>" + `<h1>Dashboard</h1>` + tableHtml + "</body></html>";
         const source = 'data:application/vnd.ms-word;charset=utf-8,' + encodeURIComponent(sourceHTML);
         const fileDownload = document.createElement("a");
         document.body.appendChild(fileDownload);
@@ -139,12 +131,13 @@ const Dashboard: React.FC<DashboardProps> = ({ navigateToGradeSheet }) => {
         fileDownload.download = 'dashboard-export.doc';
         fileDownload.click();
         document.body.removeChild(fileDownload);
+        setTimeout(() => setIsExporting(false), 1000);
     };
 
     const handleExportCsv = () => {
+        setIsExporting(true);
         const headers = ['Groupname', 'Panel 1', 'Status', 'Panel 2', 'Status'];
-        
-        const csvRows = [headers.join(',')]; // Add header row
+        const csvRows = [headers.join(',')];
 
         displaySheets.forEach(sheet => {
             const panel1Name = findUserById(sheet.panel1Id)?.name || 'N/A';
@@ -152,29 +145,21 @@ const Dashboard: React.FC<DashboardProps> = ({ navigateToGradeSheet }) => {
             const panel1Status = getPanelStatus(sheet.panel1Grades);
             const panel2Status = getPanelStatus(sheet.panel2Grades);
 
-            // Escape commas in names if any by wrapping in quotes
-            const row = [
-                `"${sheet.groupName.replace(/"/g, '""')}"`,
-                `"${panel1Name.replace(/"/g, '""')}"`,
-                `"${panel1Status}"`,
-                `"${panel2Name.replace(/"/g, '""')}"`,
-                `"${panel2Status}"`,
-            ];
+            const row = [`"${sheet.groupName.replace(/"/g, '""')}"`,`"${panel1Name.replace(/"/g, '""')}"`,`"${panel1Status}"`,`"${panel2Name.replace(/"/g, '""')}"`,`"${panel2Status}"`];
             csvRows.push(row.join(','));
         });
 
         const csvString = csvRows.join('\n');
         const blob = new Blob([csvString], { type: 'text/csv;charset=utf-8;' });
         const link = document.createElement('a');
-        if (link.download !== undefined) {
-            const url = URL.createObjectURL(blob);
-            link.setAttribute('href', url);
-            link.setAttribute('download', 'dashboard-export.csv');
-            link.style.visibility = 'hidden';
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
-        }
+        const url = URL.createObjectURL(blob);
+        link.setAttribute('href', url);
+        link.setAttribute('download', 'dashboard-export.csv');
+        link.style.visibility = 'hidden';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        setTimeout(() => setIsExporting(false), 1000);
     };
 
     return (
@@ -182,23 +167,20 @@ const Dashboard: React.FC<DashboardProps> = ({ navigateToGradeSheet }) => {
             <div className="flex justify-between items-center mb-6">
                 <h2 className="text-3xl font-bold text-gray-800">Dashboard</h2>
                 <div className="flex space-x-2 no-print">
-                     <button onClick={handleExportWord} className="px-4 py-2 text-sm font-medium rounded-md bg-blue-600 text-white hover:bg-blue-700 shadow-sm">Export to MS Word</button>
-                     <button onClick={handleExportCsv} className="px-4 py-2 text-sm font-medium rounded-md bg-green-700 text-white hover:bg-green-800 shadow-sm">Export to CSV</button>
+                     <button onClick={handleExportWord} disabled={isExporting} className="px-4 py-2 text-sm font-medium rounded-md bg-blue-600 text-white hover:bg-blue-700 shadow-sm disabled:bg-blue-400">
+                        {isExporting ? 'Exporting...' : 'Export to MS Word'}
+                     </button>
+                     <button onClick={handleExportCsv} disabled={isExporting} className="px-4 py-2 text-sm font-medium rounded-md bg-green-700 text-white hover:bg-green-800 shadow-sm disabled:bg-green-500">
+                        {isExporting ? 'Exporting...' : 'Export to CSV'}
+                     </button>
                 </div>
             </div>
             
             {isAdminOrAdviser && (
                 <div className="mb-6 flex space-x-2 no-print">
                     {['All', 'Not Started', 'In Progress', 'Completed'].map(f => (
-                        <button
-                            key={f}
-                            onClick={() => setFilter(f)}
-                            className={`px-4 py-2 text-sm font-medium rounded-md transition-colors shadow-sm ${
-                                filter === f
-                                    ? 'bg-green-700 text-white'
-                                    : 'bg-white text-gray-700 hover:bg-gray-100 border'
-                            }`}
-                        >
+                        <button key={f} onClick={() => setFilter(f)}
+                            className={`px-4 py-2 text-sm font-medium rounded-md transition-colors shadow-sm ${filter === f ? 'bg-green-700 text-white' : 'bg-white text-gray-700 hover:bg-gray-100 border'}`}>
                             {f}
                         </button>
                     ))}
@@ -208,14 +190,13 @@ const Dashboard: React.FC<DashboardProps> = ({ navigateToGradeSheet }) => {
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 no-print">
                 {displaySheets.length > 0 ? (
                     displaySheets.map(sheet => (
-                        <GradeSheetCard key={sheet.id} sheet={sheet} onView={() => handleViewSheet(sheet.id)} />
+                        <GradeSheetCard key={sheet.id} sheet={sheet} onView={() => navigateToGradeSheet(sheet.id)} />
                     ))
                 ) : (
                     <p className="text-gray-500 col-span-full">No grading sheets found for the selected filter.</p>
                 )}
             </div>
 
-            {/* Print-only table */}
             <div className="print-only">
                 <h2 className="text-2xl font-bold mb-4">Dashboard Summary</h2>
                 <table className="min-w-full divide-y divide-gray-200 border">

@@ -15,7 +15,6 @@ interface RubricModalState {
     studentId?: string;
 }
 
-// Helper component to avoid React Hook errors
 const InfoIconWrapper: React.FC<{ item: RubricItem; studentId?: string; onClick: (item: RubricItem, studentId?: string) => void }> = ({ item, studentId, onClick }) => {
     return <InfoIcon className="w-5 h-5 text-gray-400 cursor-pointer hover:text-green-600" onClick={() => onClick(item, studentId)} />;
 };
@@ -162,13 +161,11 @@ const GradingSheet: React.FC<GradingSheetProps> = ({ gradeSheetId, setPage }) =>
         if (!sheet || !grades) return;
 
         const missing: string[] = [];
-        // Check title defense scores
         TITLE_DEFENSE_RUBRIC.forEach(item => {
             if (grades.titleDefenseScores[item.id] === undefined || grades.titleDefenseScores[item.id] === null) {
                 missing.push(`- Title Defense: ${item.criteria}`);
             }
         });
-        // Check individual scores
         sheet.proponents.forEach(student => {
             INDIVIDUAL_GRADE_RUBRIC.forEach(item => {
                 if (grades.individualScores[student.id]?.[item.id] === undefined || grades.individualScores[student.id]?.[item.id] === null) {
@@ -176,7 +173,6 @@ const GradingSheet: React.FC<GradingSheetProps> = ({ gradeSheetId, setPage }) =>
                 }
             });
         });
-        // Check comments
         if (!grades.comments.trim()) {
             missing.push("- Comments section");
         }
@@ -193,7 +189,7 @@ const GradingSheet: React.FC<GradingSheetProps> = ({ gradeSheetId, setPage }) =>
         }
     };
     
-    if (!sheet || !currentUser || (!isPanelist)) {
+    if (!sheet || !currentUser || !isPanelist) {
         return <div className="p-8 text-center text-gray-500">Loading or you do not have permission...</div>;
     }
     
@@ -207,7 +203,6 @@ const GradingSheet: React.FC<GradingSheetProps> = ({ gradeSheetId, setPage }) =>
                 <p className="text-xl text-gray-600 mt-1">{sheet.groupName}</p>
             </div>
 
-            {/* Group Details Section */}
             <div className="bg-white shadow-lg rounded-lg p-8 mb-8">
                 <h2 className="text-2xl font-bold text-gray-800 mb-4">Group Presentation Details</h2>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -249,7 +244,6 @@ const GradingSheet: React.FC<GradingSheetProps> = ({ gradeSheetId, setPage }) =>
 
             {areDetailsSet && grades && (
             <>
-                {/* Title Defense Rubric */}
                 <div className="bg-white shadow-lg rounded-lg p-8 mb-8">
                     <h3 className="text-2xl font-bold text-gray-800 mb-4">Title Defense Rubric (70%)</h3>
                     <table className="min-w-full">
@@ -273,7 +267,6 @@ const GradingSheet: React.FC<GradingSheetProps> = ({ gradeSheetId, setPage }) =>
                     </table>
                 </div>
 
-                {/* Individual Grade Rubric */}
                 <div className="bg-white shadow-lg rounded-lg p-8 mb-8">
                      <h3 className="text-2xl font-bold text-gray-800 mb-4">Individual Performance (30%)</h3>
                      <div className="overflow-x-auto">
@@ -305,13 +298,11 @@ const GradingSheet: React.FC<GradingSheetProps> = ({ gradeSheetId, setPage }) =>
                      </div>
                 </div>
 
-                {/* Comments */}
                 <div className="bg-white shadow-lg rounded-lg p-8 mb-8">
                     <h3 className="text-2xl font-bold text-gray-800 mb-4">Comments & Feedback</h3>
                     <textarea value={grades.comments} onChange={e => setGrades(g => g ? { ...g, comments: e.target.value } : null)} disabled={isReadOnly} rows={6} className="w-full p-3 border rounded-md disabled:bg-gray-100" placeholder="Enter your overall comments for the group here..."/>
                 </div>
 
-                {/* Actions */}
                 {!isReadOnly && (
                     <div className="flex justify-end">
                         <button onClick={handleSubmit} className="px-8 py-3 bg-green-700 text-white font-bold rounded-md hover:bg-green-800 disabled:opacity-50">
@@ -324,7 +315,6 @@ const GradingSheet: React.FC<GradingSheetProps> = ({ gradeSheetId, setPage }) =>
             
             {showSuccess && <SuccessModal />}
 
-            {/* Missing Fields Modal */}
             {missingFields.length > 0 && (
                 <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50">
                     <div className="bg-white rounded-lg shadow-xl p-6 w-full max-w-md">
@@ -340,7 +330,6 @@ const GradingSheet: React.FC<GradingSheetProps> = ({ gradeSheetId, setPage }) =>
                 </div>
             )}
 
-            {/* Rubric Modal */}
             {rubricModal.show && rubricModal.item && (
                  <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50" onClick={() => setRubricModal({show: false, item: null})}>
                     <div className="bg-white rounded-lg shadow-xl p-6 w-full max-w-lg" onClick={e => e.stopPropagation()}>

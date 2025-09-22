@@ -2,7 +2,7 @@
 import React, { useState } from 'react';
 import { useAppContext } from '../context/AppContext';
 import { GradeSheet, Page, Student } from '../types';
-import { EditIcon, TrashIcon, InfoIcon } from '../components/Icons';
+import { EditIcon, TrashIcon } from '../components/Icons';
 
 declare const XLSX: any; // From SheetJS CDN
 
@@ -214,7 +214,6 @@ const GroupManagement: React.FC<GroupManagementProps> = ({ setPage }) => {
              <h2 className="text-3xl font-bold text-gray-800 mb-6">Group Management</h2>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                 {/* Manual Entry Section */}
                 <div className="bg-white p-6 rounded-lg shadow-md">
                      <h3 className="text-xl font-bold text-gray-800 mb-2">Manage Groups</h3>
                     <p className="text-base text-gray-800 mb-4">Add, edit, or delete groups manually using the table below.</p>
@@ -232,7 +231,7 @@ const GroupManagement: React.FC<GroupManagementProps> = ({ setPage }) => {
                                         </div>
                                         <div className="space-x-2">
                                             <button onClick={() => handleEdit(sheet)} className="text-green-700 hover:text-green-900 p-1"><EditIcon className="w-5 h-5"/></button>
-                                            <button onClick={() => handleDelete(sheet.id)} className="text-red-600 hover:text-red-900 p-1"><TrashIcon className="w-5 h-s"/></button>
+                                            <button onClick={() => handleDelete(sheet.id)} className="text-red-600 hover:text-red-900 p-1"><TrashIcon className="w-5 h-5"/></button>
                                         </div>
                                     </li>
                                 ))}
@@ -243,7 +242,6 @@ const GroupManagement: React.FC<GroupManagementProps> = ({ setPage }) => {
                     </div>
                 </div>
 
-                {/* File Upload Section */}
                 <div className="bg-white p-6 rounded-lg shadow-md">
                     <h3 className="text-xl font-bold text-gray-800 mb-2">Upload Spreadsheet</h3>
                     <p className="text-base text-gray-800 mb-4">Create groups in bulk by uploading an XLSX or CSV file.</p>

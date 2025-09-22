@@ -71,10 +71,8 @@ const Masterlist: React.FC = () => {
         const sheet = gradeSheets.find(s => s.id === sheetId);
         if (!sheet) return;
 
-        // Check for duplicate assignment
         if ((panelKey === 'panel1Id' && userId === sheet.panel2Id) ||
             (panelKey === 'panel2Id' && userId === sheet.panel1Id)) {
-            
             const otherPanelKey = panelKey === 'panel1Id' ? 'Panel 2' : 'Panel 1';
             setErrorModal({ show: true, message: `This user is already assigned as ${otherPanelKey}. Please select a different user.` });
             return;
@@ -103,29 +101,14 @@ const Masterlist: React.FC = () => {
             const studentScores = sheet.proponents.map(proponent => {
                 const p1Indiv = panel1Scores.individualWeighted[proponent.id] || 0;
                 const p2Indiv = panel2Scores.individualWeighted[proponent.id] || 0;
-
                 const p1Total = panel1Scores.titleDefenseWeighted + p1Indiv;
                 const p2Total = panel2Scores.titleDefenseWeighted + p2Indiv;
-                
                 const finalScore = (p1Total + p2Total) / 2;
-
-                return {
-                    ...proponent,
-                    p1Title: panel1Scores.titleDefenseWeighted,
-                    p1Indiv: p1Indiv,
-                    p2Title: panel2Scores.titleDefenseWeighted,
-                    p2Indiv: p2Indiv,
-                    finalScore: finalScore,
-                };
+                return { ...proponent, p1Title: panel1Scores.titleDefenseWeighted, p1Indiv, p2Title: panel2Scores.titleDefenseWeighted, p2Indiv, finalScore };
             });
             
             const groupFinalScore = studentScores.reduce((sum, s) => sum + s.finalScore, 0) / (studentScores.length || 1);
-
-            return {
-                ...sheet,
-                studentScores,
-                groupFinalScore,
-            };
+            return { ...sheet, studentScores, groupFinalScore };
         });
     }, [gradeSheets]);
 
@@ -160,9 +143,7 @@ const Masterlist: React.FC = () => {
     
             group.studentScores.forEach((student, index) => {
                 tableHtml += `<tr style="font-size: 9pt;">`;
-                if (index === 0) {
-                    tableHtml += `<td rowspan="${numProponents}" style="padding: 8px; vertical-align: top;">${group.groupName}</td>`;
-                }
+                if (index === 0) tableHtml += `<td rowspan="${numProponents}" style="padding: 8px; vertical-align: top;">${group.groupName}</td>`;
                 tableHtml += `<td style="padding: 8px;">${student.name}</td>`;
                 if (index === 0) {
                     tableHtml += `<td rowspan="${numProponents}" style="padding: 8px; vertical-align: middle;">${panel1Name}</td>`;
@@ -170,54 +151,16 @@ const Masterlist: React.FC = () => {
                     tableHtml += `<td rowspan="${numProponents}" style="padding: 8px; text-align: center; vertical-align: middle;">${student.p1Title > 0 ? student.p1Title.toFixed(2) : '0.00'}</td>`;
                 }
                 tableHtml += `<td style="padding: 8px; text-align: center;">${student.p1Indiv > 0 ? student.p1Indiv.toFixed(2) : '0.00'}</td>`;
-                if (index === 0) {
-                    tableHtml += `<td rowspan="${numProponents}" style="padding: 8px; text-align: center; vertical-align: middle;">${student.p2Title > 0 ? student.p2Title.toFixed(2) : '0.00'}</td>`;
-                }
+                if (index === 0) tableHtml += `<td rowspan="${numProponents}" style="padding: 8px; text-align: center; vertical-align: middle;">${student.p2Title > 0 ? student.p2Title.toFixed(2) : '0.00'}</td>`;
                 tableHtml += `<td style="padding: 8px; text-align: center;">${student.p2Indiv > 0 ? student.p2Indiv.toFixed(2) : '0.00'}</td>`;
                 tableHtml += `<td style="padding: 8px; text-align: center; font-weight: bold;">${student.finalScore.toFixed(2)}</td>`;
-                if (index === 0) {
-                    tableHtml += `<td rowspan="${numProponents}" style="padding: 8px; text-align: center; vertical-align: middle; font-weight: bold; font-size: 1.2em;">${group.groupFinalScore.toFixed(2)}</td>`;
-                }
+                if (index === 0) tableHtml += `<td rowspan="${numProponents}" style="padding: 8px; text-align: center; vertical-align: middle; font-weight: bold; font-size: 1.2em;">${group.groupFinalScore.toFixed(2)}</td>`;
                 tableHtml += `</tr>`;
             });
         });
     
         tableHtml += `</tbody></table>`;
-        
-        const wordDocument = `
-            <html xmlns:w="urn:schemas-microsoft-com:office:word" xmlns="http://www.w3.org/TR/REC-html40">
-                <head>
-                    <meta charset="utf-8">
-                    <title>Masterlist Export</title>
-                    <!--[if gte mso 9]>
-                    <xml>
-                        <w:WordDocument>
-                            <w:View>Print</w:View>
-                            <w:Zoom>90</w:Zoom>
-                            <w:DoNotOptimizeForBrowser/>
-                        </w:WordDocument>
-                    </xml>
-                    <![endif]-->
-                    <style>
-                        @page Section1 {
-                            size: 11.0in 8.5in;
-                            mso-page-orientation: landscape;
-                            margin: 1.0in 1.0in 1.0in 1.0in;
-                        }
-                        div.Section1 {
-                            page: Section1;
-                        }
-                    </style>
-                </head>
-                <body>
-                    <div class="Section1">
-                        <h1>Masterlist & Panel Assignment</h1>
-                        ${tableHtml}
-                    </div>
-                </body>
-            </html>
-        `;
-
+        const wordDocument = `<html xmlns:w="urn:schemas-microsoft-com:office:word" xmlns="http://www.w3.org/TR/REC-html40"><head><meta charset="utf-8"><title>Masterlist Export</title><style>@page Section1 { size: 11.0in 8.5in; mso-page-orientation: landscape; margin: 1.0in; } div.Section1 { page: Section1; }</style></head><body><div class="Section1"><h1>Masterlist & Panel Assignment</h1>${tableHtml}</div></body></html>`;
         const source = 'data:application/vnd.ms-word;charset=utf-8,' + encodeURIComponent(wordDocument);
         const fileDownload = document.createElement("a");
         document.body.appendChild(fileDownload);
@@ -228,54 +171,26 @@ const Masterlist: React.FC = () => {
     };
 
     const handleExportCsv = () => {
-        const headers = [
-            'Group Name', 
-            'Proponent', 
-            'Assigned Panel 1', 
-            'Assigned Panel 2', 
-            'Panel 1 Title Defense (70%)', 
-            'Panel 1 Individual (30%)', 
-            'Panel 2 Title Defense (70%)', 
-            'Panel 2 Individual (30%)', 
-            'Proponent Final Score (Total)', 
-            'Group Final Score'
-        ];
-        
+        const headers = ['Group Name', 'Proponent', 'Assigned Panel 1', 'Assigned Panel 2', 'Panel 1 Title Defense (70%)', 'Panel 1 Individual (30%)', 'Panel 2 Title Defense (70%)', 'Panel 2 Individual (30%)', 'Proponent Final Score (Total)', 'Group Final Score'];
         const csvRows = [headers.join(',')];
-
         masterlistData.forEach(group => {
             const panel1Name = findUserById(group.panel1Id)?.name || 'N/A';
             const panel2Name = findUserById(group.panel2Id)?.name || 'N/A';
-    
             group.studentScores.forEach(student => {
-                const row = [
-                    `"${group.groupName.replace(/"/g, '""')}"`,
-                    `"${student.name.replace(/"/g, '""')}"`,
-                    `"${panel1Name.replace(/"/g, '""')}"`,
-                    `"${panel2Name.replace(/"/g, '""')}"`,
-                    student.p1Title > 0 ? student.p1Title.toFixed(2) : '0.00',
-                    student.p1Indiv > 0 ? student.p1Indiv.toFixed(2) : '0.00',
-                    student.p2Title > 0 ? student.p2Title.toFixed(2) : '0.00',
-                    student.p2Indiv > 0 ? student.p2Indiv.toFixed(2) : '0.00',
-                    student.finalScore.toFixed(2),
-                    group.groupFinalScore.toFixed(2)
-                ];
+                const row = [`"${group.groupName.replace(/"/g, '""')}"`, `"${student.name.replace(/"/g, '""')}"`, `"${panel1Name.replace(/"/g, '""')}"`, `"${panel2Name.replace(/"/g, '""')}"`, student.p1Title.toFixed(2), student.p1Indiv.toFixed(2), student.p2Title.toFixed(2), student.p2Indiv.toFixed(2), student.finalScore.toFixed(2), group.groupFinalScore.toFixed(2)];
                 csvRows.push(row.join(','));
             });
         });
-
         const csvString = csvRows.join('\n');
         const blob = new Blob([csvString], { type: 'text/csv;charset=utf-8;' });
         const link = document.createElement('a');
-        if (link.download !== undefined) {
-            const url = URL.createObjectURL(blob);
-            link.setAttribute('href', url);
-            link.setAttribute('download', 'masterlist-export.csv');
-            link.style.visibility = 'hidden';
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
-        }
+        const url = URL.createObjectURL(blob);
+        link.setAttribute('href', url);
+        link.setAttribute('download', 'masterlist-export.csv');
+        link.style.visibility = 'hidden';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
     };
 
     return (
@@ -289,18 +204,9 @@ const Masterlist: React.FC = () => {
             </div>
             
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6 no-print">
-                <div className="bg-green-100 p-4 rounded-lg shadow text-center">
-                    <p className="text-3xl font-bold text-green-800">{stats.graded}</p>
-                    <p className="text-sm font-semibold text-green-700">Graded</p>
-                </div>
-                <div className="bg-yellow-100 p-4 rounded-lg shadow text-center">
-                    <p className="text-3xl font-bold text-yellow-800">{stats.incomplete}</p>
-                    <p className="text-sm font-semibold text-yellow-700">Incomplete</p>
-                </div>
-                <div className="bg-gray-200 p-4 rounded-lg shadow text-center">
-                    <p className="text-3xl font-bold text-gray-800">{stats.ungraded}</p>
-                    <p className="text-sm font-semibold text-gray-700">Ungraded</p>
-                </div>
+                <div className="bg-green-100 p-4 rounded-lg shadow text-center"><p className="text-3xl font-bold text-green-800">{stats.graded}</p><p className="text-sm font-semibold text-green-700">Graded</p></div>
+                <div className="bg-yellow-100 p-4 rounded-lg shadow text-center"><p className="text-3xl font-bold text-yellow-800">{stats.incomplete}</p><p className="text-sm font-semibold text-yellow-700">Incomplete</p></div>
+                <div className="bg-gray-200 p-4 rounded-lg shadow text-center"><p className="text-3xl font-bold text-gray-800">{stats.ungraded}</p><p className="text-sm font-semibold text-gray-700">Ungraded</p></div>
             </div>
 
             <div className="bg-white shadow-md rounded-lg overflow-x-auto">
@@ -328,75 +234,32 @@ const Masterlist: React.FC = () => {
                             <React.Fragment key={group.id}>
                                 {group.studentScores.map((student, index) => (
                                     <tr key={student.id} className={index % 2 === 0 ? 'bg-white' : 'bg-gray-50'}>
-                                        {index === 0 && (
-                                            <td rowSpan={group.proponents.length} className="px-4 py-4 align-top font-medium text-black border-r">{group.groupName}</td>
-                                        )}
+                                        {index === 0 && (<td rowSpan={group.proponents.length} className="px-4 py-4 align-top font-medium text-black border-r">{group.groupName}</td>)}
                                         <td className="px-4 py-2 text-black border-r">{student.name}</td>
-                                        
                                         {index === 0 && (
                                             <>
                                                 <td rowSpan={group.proponents.length} className="px-4 py-4 align-middle border-r">
-                                                    <select
-                                                        value={group.panel1Id}
-                                                        onChange={(e) => handlePanelChange(group.id, 'panel1Id', e.target.value)}
-                                                        className="w-full p-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-green-500 focus:border-green-500 no-print"
-                                                        aria-label={`Assign Panel 1 for ${group.groupName}`}
-                                                    >
-                                                        <option value="" disabled>-- Select --</option>
-                                                        {panelOptions.map(opt => (
-                                                            <option key={opt.id} value={opt.id}>{opt.name}</option>
-                                                        ))}
-                                                    </select>
+                                                    <select value={group.panel1Id} onChange={(e) => handlePanelChange(group.id, 'panel1Id', e.target.value)} className="w-full p-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-green-500 focus:border-green-500 no-print" aria-label={`Assign Panel 1 for ${group.groupName}`}><option value="" disabled>-- Select --</option>{panelOptions.map(opt => (<option key={opt.id} value={opt.id}>{opt.name}</option>))}</select>
                                                     <span className="print-only">{findUserById(group.panel1Id)?.name || 'N/A'}</span>
                                                 </td>
                                                 <td rowSpan={group.proponents.length} className="px-4 py-4 align-middle border-r">
-                                                    <select
-                                                        value={group.panel2Id}
-                                                        onChange={(e) => handlePanelChange(group.id, 'panel2Id', e.target.value)}
-                                                        className="w-full p-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-green-500 focus:border-green-500 no-print"
-                                                        aria-label={`Assign Panel 2 for ${group.groupName}`}
-                                                    >
-                                                        <option value="" disabled>-- Select --</option>
-                                                        {panelOptions.map(opt => (
-                                                            <option key={opt.id} value={opt.id}>{opt.name}</option>
-                                                        ))}
-                                                    </select>
+                                                    <select value={group.panel2Id} onChange={(e) => handlePanelChange(group.id, 'panel2Id', e.target.value)} className="w-full p-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-green-500 focus:border-green-500 no-print" aria-label={`Assign Panel 2 for ${group.groupName}`}><option value="" disabled>-- Select --</option>{panelOptions.map(opt => (<option key={opt.id} value={opt.id}>{opt.name}</option>))}</select>
                                                      <span className="print-only">{findUserById(group.panel2Id)?.name || 'N/A'}</span>
                                                 </td>
                                             </>
                                         )}
-
-                                        {/* Panel 1 */}
-                                        {index === 0 && (
-                                            <td rowSpan={group.proponents.length} className="px-4 py-4 align-middle text-center text-black border-r">
-                                                {student.p1Title > 0 ? student.p1Title.toFixed(2) : '0.00'}
-                                            </td>
-                                        )}
-                                        <td className="px-4 py-2 text-center text-black border-r">{student.p1Indiv > 0 ? student.p1Indiv.toFixed(2) : '0.00'}</td>
-
-                                        {/* Panel 2 */}
-                                        {index === 0 && (
-                                            <td rowSpan={group.proponents.length} className="px-4 py-4 align-middle text-center text-black border-r">
-                                                {student.p2Title > 0 ? student.p2Title.toFixed(2) : '0.00'}
-                                            </td>
-                                        )}
-                                        <td className="px-4 py-2 text-center text-black border-r">{student.p2Indiv > 0 ? student.p2Indiv.toFixed(2) : '0.00'}</td>
-                                        
+                                        {index === 0 && (<td rowSpan={group.proponents.length} className="px-4 py-4 align-middle text-center text-black border-r">{student.p1Title.toFixed(2)}</td>)}
+                                        <td className="px-4 py-2 text-center text-black border-r">{student.p1Indiv.toFixed(2)}</td>
+                                        {index === 0 && (<td rowSpan={group.proponents.length} className="px-4 py-4 align-middle text-center text-black border-r">{student.p2Title.toFixed(2)}</td>)}
+                                        <td className="px-4 py-2 text-center text-black border-r">{student.p2Indiv.toFixed(2)}</td>
                                         <td className="px-4 py-2 text-center font-bold text-green-800 border-r">{student.finalScore.toFixed(2)}</td>
-
-                                        {index === 0 && (
-                                            <td rowSpan={group.proponents.length} className="px-4 py-4 align-middle text-center font-extrabold text-xl text-green-700">
-                                                {group.groupFinalScore.toFixed(2)}
-                                            </td>
-                                        )}
+                                        {index === 0 && (<td rowSpan={group.proponents.length} className="px-4 py-4 align-middle text-center font-extrabold text-xl text-green-700">{group.groupFinalScore.toFixed(2)}</td>)}
                                     </tr>
                                 ))}
                             </React.Fragment>
                         ))}
                          {masterlistData.length === 0 && (
-                            <tr>
-                                <td colSpan={10} className="text-center py-10 text-gray-700 text-lg">No groups have been created yet. Go to Group Management to add a group.</td>
-                            </tr>
+                            <tr><td colSpan={10} className="text-center py-10 text-gray-700 text-lg">No groups have been created yet. Go to Group Management to add a group.</td></tr>
                         )}
                     </tbody>
                 </table>
