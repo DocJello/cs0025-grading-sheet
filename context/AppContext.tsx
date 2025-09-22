@@ -13,9 +13,9 @@ const GRADES_COLLECTION_ID = 'grades';
 
 
 // These function IDs are needed for admin/adviser user management.
-const CREATE_USER_FUNCTION_ID = 'placeholder';
-const UPDATE_USER_FUNCTION_ID = 'placeholder';
-const DELETE_USER_FUNCTION_ID = 'placeholder';
+const CREATE_USER_FUNCTION_ID = '68d0c6dc003160126f45';
+const UPDATE_USER_FUNCTION_ID = '68d0f91e0037fa1a93e7';
+const DELETE_USER_FUNCTION_ID = '68d0fa6b0018c4eda38a';
 
 
 // Initialize Appwrite Client
