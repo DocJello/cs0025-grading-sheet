@@ -45,7 +45,7 @@ const safeJsonParse = (jsonString: string | null | undefined, defaultValue: any)
 };
 
 interface AppError {
-    type: 'CORS' | 'NOT_FOUND' | 'PERMISSION' | 'GENERIC' | 'PROFILE_NOT_FOUND';
+    type: 'NETWORK_ERROR' | 'NOT_FOUND' | 'PERMISSION' | 'PROFILE_NOT_FOUND';
     message: string;
     context?: string; // e.g., the name of the collection that was not found
 }
@@ -144,22 +144,19 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
             console.error("Failed to load app data", err);
             setCurrentUser(null); // Log out user on error
             
-            // --- Intelligent Error Diagnosis ---
             if (err instanceof AppwriteException) {
-                if (err.type === 'PROFILE_NOT_FOUND') {
+                 if (err.type === 'PROFILE_NOT_FOUND') {
                     setError({ type: 'PROFILE_NOT_FOUND', message: err.message });
                 } else if (err.code === 404) {
-                    const collectionName = err.message.match(/Collection with ID '([^']*)'/)
+                    const collectionName = err.message.match(/Collection with ID '([^']*)'/);
                     setError({ type: 'NOT_FOUND', message: `A required database collection was not found. Please check your Appwrite setup.`, context: collectionName ? collectionName[1] : 'Unknown' });
                 } else if (err.code === 401 || err.code === 403) {
                      setError({ type: 'PERMISSION', message: `You do not have permission to access a required resource. Please check the permissions for your collections in Appwrite.`, context: err.message });
                 } else {
-                    setError({ type: 'GENERIC', message: err.message });
+                    setError({ type: 'NETWORK_ERROR', message: `An Appwrite error occurred: ${err.message}` });
                 }
-            } else if (err instanceof TypeError || (err.message && err.message.toLowerCase().includes('failed to fetch'))) {
-                 setError({ type: 'CORS', message: 'A network error occurred. This is often a CORS issue.' });
             } else {
-                 setError({ type: 'GENERIC', message: err.message || 'An unknown error occurred.' });
+                 setError({ type: 'NETWORK_ERROR', message: err.message || 'An unknown network error occurred.' });
             }
         } finally {
              setIsLoading(false);
