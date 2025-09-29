@@ -14,21 +14,31 @@ const pool = new Pool({
 
 // --- Middleware ---
 
-// Secure CORS configuration
-const whitelist = [
-    'https://cs0025-grading-sheet.vercel.app',
+// A more robust CORS configuration for Vercel
+const allowedOrigins = [
+    process.env.FRONTEND_URL, // The main production URL from environment variables
     // You can add your local development URL here if needed, e.g., 'http://localhost:5173'
 ];
 
 const corsOptions = {
     origin: (origin, callback) => {
-        // Allow requests with no origin (like Postman/curl) or from whitelisted domains
-        if (!origin || whitelist.includes(origin)) {
-            callback(null, true);
-        } else {
-            console.error(`CORS Error: Request from origin '${origin}' blocked.`);
-            callback(new Error('Not allowed by CORS'));
+        // Allow requests with no origin (like Postman/curl)
+        if (!origin) return callback(null, true);
+        
+        // Allow if the origin is in our explicit list
+        if (allowedOrigins.includes(origin)) {
+            return callback(null, true);
         }
+        
+        // Allow any Vercel preview deployment for this specific project
+        const vercelPreviewPattern = /^https:\/\/cs0025-grading-sheet-.*\.vercel\.app$/;
+        if (vercelPreviewPattern.test(origin)) {
+            return callback(null, true);
+        }
+        
+        // Otherwise, block the request
+        console.error(`CORS Error: Request from origin '${origin}' blocked.`);
+        callback(new Error('Not allowed by CORS'));
     },
     optionsSuccessStatus: 200
 };
