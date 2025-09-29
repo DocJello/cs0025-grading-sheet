@@ -12,11 +12,28 @@ const pool = new Pool({
   ssl: process.env.DATABASE_URL ? { rejectUnauthorized: false } : false,
 });
 
-// Middleware
-// FIX: "Failed to fetch" errors are almost always a Cross-Origin Resource Sharing (CORS) issue.
-// This simplifies the CORS setup to be more permissive, allowing your frontend to connect from any origin.
-// For a production environment, you should tighten this by using a whitelist of your specific frontend URLs.
-app.use(cors());
+// --- Middleware ---
+
+// Secure CORS configuration
+const whitelist = [
+    'https://cs0025-grading-sheet.vercel.app',
+    // You can add your local development URL here if needed, e.g., 'http://localhost:5173'
+];
+
+const corsOptions = {
+    origin: (origin, callback) => {
+        // Allow requests with no origin (like Postman/curl) or from whitelisted domains
+        if (!origin || whitelist.includes(origin)) {
+            callback(null, true);
+        } else {
+            console.error(`CORS Error: Request from origin '${origin}' blocked.`);
+            callback(new Error('Not allowed by CORS'));
+        }
+    },
+    optionsSuccessStatus: 200
+};
+
+app.use(cors(corsOptions));
 app.use(express.json()); // To parse JSON bodies
 
 // API routes
