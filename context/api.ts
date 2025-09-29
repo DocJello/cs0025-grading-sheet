@@ -1,8 +1,19 @@
 import { User, GradeSheet, GradeSheetStatus } from '../types';
 
-// The user will set this in their frontend deployment environment (Vercel, etc.)
-// It should point to their live Render backend URL.
-const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:3001';
+// =====================================================================================
+// !! CRITICAL ACTION REQUIRED !!
+// =====================================================================================
+// You MUST replace the placeholder URL below with the actual URL of your backend
+// service that you deployed on Render.
+//
+// 1. Find your backend URL on your Render.com dashboard.
+//    It will look like: 'https://your-app-name.onrender.com'
+// 2. Replace the placeholder string below with your URL.
+//
+// Your application WILL NOT WORK until you do this.
+// =====================================================================================
+export const API_URL = 'https://YOUR_RENDER_BACKEND_URL_HERE.onrender.com'; // <-- 🛑 REPLACE THIS VALUE
+
 const CURRENT_USER_KEY = 'currentUser'; // We still use localStorage for the logged-in user session
 
 // Helper to handle API responses
