@@ -1,6 +1,6 @@
 import React, { createContext, useState, useContext, ReactNode, useEffect } from 'react';
 import { User, GradeSheet, GradeSheetStatus } from '../types';
-import { api } from './api';
+import { api, API_URL } from './api';
 
 interface AppContextType {
     currentUser: User | null;
@@ -23,7 +23,32 @@ interface AppContextType {
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
 
+const ConfigurationError: React.FC = () => (
+    <div className="min-h-screen flex items-center justify-center bg-red-50 p-4">
+        <div className="max-w-2xl w-full bg-white rounded-lg shadow-2xl p-8 border-2 border-red-500">
+            <h1 className="text-3xl font-bold text-red-700 mb-4">Configuration Error</h1>
+            <p className="text-lg text-gray-800 mb-6">
+                The application cannot connect to the backend server because the server address has not been configured.
+            </p>
+            <div className="bg-gray-100 p-4 rounded-md">
+                <p className="font-semibold text-gray-900 mb-2">To fix this:</p>
+                <ol className="list-decimal list-inside space-y-2 text-gray-700">
+                    <li>Open the file <code className="bg-red-100 text-red-800 font-mono p-1 rounded">context/api.ts</code> in your code editor.</li>
+                    <li>Find the line that starts with <code className="bg-red-100 text-red-800 font-mono p-1 rounded">export const API_URL = ...</code></li>
+                    <li>Replace the placeholder URL with the actual URL of your backend deployed on Render.</li>
+                </ol>
+            </div>
+        </div>
+    </div>
+);
+
+
 export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
+    // Check for placeholder URL to prevent runtime errors and guide the developer
+    if (API_URL === 'https://YOUR_RENDER_BACKEND_URL_HERE.onrender.com') {
+        return <ConfigurationError />;
+    }
+
     const [currentUser, setCurrentUser] = useState<User | null>(null);
     const [users, setUsers] = useState<User[]>([]);
     const [gradeSheets, setGradeSheets] = useState<GradeSheet[]>([]);
