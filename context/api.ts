@@ -12,7 +12,7 @@ import { User, GradeSheet, GradeSheetStatus } from '../types';
 //
 // Your application WILL NOT WORK until you do this.
 // =====================================================================================
-export const API_URL = 'https://cs0025-grading-sheet.onrender.com/';
+export const API_URL = 'https://cs0025-grading-sheet.onrender.com';
 
 const CURRENT_USER_KEY = 'currentUser'; // We still use localStorage for the logged-in user session
 
