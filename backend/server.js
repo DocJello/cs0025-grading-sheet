@@ -12,6 +12,36 @@ const pool = new Pool({
   ssl: process.env.DATABASE_URL ? { rejectUnauthorized: false } : false,
 });
 
+// --- Self-healing Database Seeding ---
+const seedDatabaseIfNeeded = async () => {
+    try {
+        const client = await pool.connect();
+        // Check if the users table is empty
+        const res = await client.query('SELECT COUNT(*) FROM users');
+        if (parseInt(res.rows[0].count, 10) === 0) {
+            console.log('Users table is empty. Seeding initial admin and panel users...');
+            // Insert the default users
+            await client.query(`
+                INSERT INTO users (id, name, email, role, "passwordHash") VALUES
+                ('u_admin_01', 'Admin User', 'admin@example.com', 'Admin', '123'),
+                ('u_ca_01', 'Course Adviser', 'ca@example.com', 'Course Adviser', '123'),
+                ('u_panel_01', 'Panel Member 1', 'panel1@example.com', 'Panel', '123'),
+                ('u_panel_02', 'Panel Member 2', 'panel2@example.com', 'Panel', '123'),
+                ('u_panel_03', 'Panel Member 3', 'panel3@example.com', 'Panel', '123');
+            `);
+            console.log('Default users seeded successfully.');
+        }
+        client.release();
+    } catch (err) {
+        // This can fail if the table doesn't exist yet, which is okay during initial migration.
+        if (err.code === '42P01') { // relation "users" does not exist
+            console.warn('Users table not found. Please run database.sql to create tables. Skipping seeding.');
+        } else {
+            console.error('Error during database seeding check:', err);
+        }
+    }
+};
+
 // --- Middleware ---
 
 // A more robust CORS configuration for Vercel
@@ -224,4 +254,6 @@ app.delete('/api/gradesheets/:id', async (req, res) => {
 // Start the server
 app.listen(port, () => {
     console.log(`Backend server is running on port ${port}`);
+    // Run the seeding check on startup to ensure the DB is not empty
+    seedDatabaseIfNeeded();
 });
