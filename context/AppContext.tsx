@@ -45,14 +45,14 @@ const ConfigurationError: React.FC = () => (
 
 export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
     // Check for placeholder URL to prevent runtime errors and guide the developer
-    if (API_URL === 'https://YOUR_RENDER_BACKEND_URL_HERE.onrender.com') {
+    if (API_URL === 'https://cs0025-grading-sheet.onrender.com') {
         return <ConfigurationError />;
     }
 
     const [currentUser, setCurrentUser] = useState<User | null>(null);
     const [users, setUsers] = useState<User[]>([]);
     const [gradeSheets, setGradeSheets] = useState<GradeSheet[]>([]);
-    const [venues, setVenues] = useState<string[]>(['Room 404', 'Room 405', 'Auditorium']);
+    const [venues, setVenues] = useState<string[]>(['AVR', 'CASE', 'Online']);
     const [isLoading, setIsLoading] = useState(true);
 
     useEffect(() => {
