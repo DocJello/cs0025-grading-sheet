@@ -45,7 +45,7 @@ const ConfigurationError: React.FC = () => (
 
 export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
     // Check for placeholder URL to prevent runtime errors and guide the developer
-    if (API_URL === 'https://cs0025-grading-sheet.onrender.com') {
+    if (API_URL === 'https://YOUR_RENDER_BACKEND_URL_HERE.onrender.com') {
         return <ConfigurationError />;
     }
 
