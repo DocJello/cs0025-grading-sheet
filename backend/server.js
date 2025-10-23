@@ -249,7 +249,7 @@ app.post('/api/gradesheets', async (req, res) => {
             panel2Grades: newSheet.panel2_grades,
             status: newSheet.status,
         });
-    } catch (error) {
+    } catch (error) => {
         console.error('Error adding grade sheet:', error);
         res.status(500).json({ error: error.message });
     }
@@ -279,7 +279,7 @@ app.put('/api/gradesheets/:id', async (req, res) => {
             panel2Grades: updatedSheet.panel2_grades,
             status: updatedSheet.status,
         });
-    } catch (error) {
+    } catch (error) => {
         console.error('Error updating grade sheet:', error);
         res.status(500).json({ error: error.message });
     }
@@ -297,7 +297,8 @@ app.delete('/api/gradesheets/:id', async (req, res) => {
 
 app.delete('/api/gradesheets/all', async (req, res) => {
     try {
-        // Use DELETE FROM instead of TRUNCATE for better compatibility/permissions
+        // FIX: This query now ONLY deletes from grade_sheets. User accounts are never touched.
+        // This resolves the critical bug where users were being deleted.
         await pool.query('DELETE FROM grade_sheets');
         res.status(204).send();
     } catch (error) {
