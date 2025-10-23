@@ -134,6 +134,17 @@ const GroupManagement: React.FC<GroupManagementProps> = ({ setPage }) => {
 
             const programIndex = headers.findIndex(h => h.toLowerCase() === 'program');
 
+            // --- Start of Duplicate Prevention Logic ---
+            // Create sets for case-insensitive checking of existing data
+            const existingGroupNames = new Set(gradeSheets.map(gs => gs.groupName.trim().toLowerCase()));
+            const allExistingStudents = new Set<string>();
+            gradeSheets.forEach(sheet => {
+                sheet.proponents.forEach(proponent => {
+                    allExistingStudents.add(proponent.name.trim().toLowerCase());
+                });
+            });
+            // --- End of Duplicate Prevention Logic ---
+
             let addedCount = 0;
             const errors: string[] = [];
 
@@ -147,7 +158,8 @@ const GroupManagement: React.FC<GroupManagementProps> = ({ setPage }) => {
                     continue;
                 }
                 
-                if (gradeSheets.some(gs => gs.groupName.toLowerCase() === groupName.toLowerCase())) {
+                // 1. Check for duplicate group name (case-insensitive)
+                if (existingGroupNames.has(groupName.trim().toLowerCase())) {
                      errors.push(`Row ${i + 1}: Skipped because group "${groupName}" already exists.`);
                     continue;
                 }
@@ -158,6 +170,20 @@ const GroupManagement: React.FC<GroupManagementProps> = ({ setPage }) => {
 
                 if (proponents.length < 3 || proponents.length > 4) {
                     errors.push(`Row ${i + 1}: Skipped because group "${groupName}" has ${proponents.length} proponents (must be 3 or 4).`);
+                    continue;
+                }
+
+                // 2. Check for duplicate students (case-insensitive)
+                let duplicateStudentFound = false;
+                for (const proponentName of proponents) {
+                    if (allExistingStudents.has(proponentName.toLowerCase())) {
+                        errors.push(`Row ${i + 1}: Skipped group "${groupName}" because student "${proponentName}" already exists in another group.`);
+                        duplicateStudentFound = true;
+                        break;
+                    }
+                }
+
+                if (duplicateStudentFound) {
                     continue;
                 }
 
@@ -174,6 +200,10 @@ const GroupManagement: React.FC<GroupManagementProps> = ({ setPage }) => {
                 };
                 addGradeSheet(newSheet);
                 addedCount++;
+                
+                // Add the newly added group and students to our sets for checks within the same file
+                existingGroupNames.add(groupName.trim().toLowerCase());
+                proponents.forEach(p => allExistingStudents.add(p.toLowerCase()));
             }
             
             let alertMessage = `${addedCount} group(s) added successfully.`;
