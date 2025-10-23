@@ -9,14 +9,13 @@ const app = express();
 const port = process.env.PORT || 3001;
 
 // --- CORS Configuration ---
-// This is a critical security configuration.
 const frontendUrl = process.env.FRONTEND_URL;
 
 if (!frontendUrl) {
     console.error("FATAL ERROR: The FRONTEND_URL environment variable is not set.");
     console.error("The backend server will not start without knowing the frontend's origin for CORS security.");
     console.error("Please set this variable in your Render.com service configuration.");
-    process.exit(1); // Exit with a failure code
+    process.exit(1);
 }
 
 console.log(`CORS is configured to allow requests from origin: ${frontendUrl}`);
@@ -37,8 +36,6 @@ const pool = new Pool({
   }
 });
 
-// Simple password hashing function (for demonstration purposes)
-// In a real production app, use bcrypt or argon2
 const hashPassword = (password) => {
     if (!password) return null;
     return crypto.createHash('sha256').update(password).digest('hex');
@@ -50,7 +47,6 @@ async function initializeDatabase() {
   try {
     await client.query('BEGIN');
 
-    // Create users table
     await client.query(`
       CREATE TABLE IF NOT EXISTS users (
         id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -61,7 +57,6 @@ async function initializeDatabase() {
       );
     `);
 
-    // Create grade_sheets table
     await client.query(`
       CREATE TABLE IF NOT EXISTS grade_sheets (
         id TEXT PRIMARY KEY,
@@ -80,7 +75,6 @@ async function initializeDatabase() {
       );
     `);
 
-    // Seed default users if table is empty
     const res = await client.query('SELECT COUNT(*) FROM users');
     if (res.rows[0].count === '0') {
       const defaultUsers = [
@@ -92,7 +86,7 @@ async function initializeDatabase() {
       for (const user of defaultUsers) {
         await client.query(
           'INSERT INTO users (name, email, role, password_hash) VALUES ($1, $2, $3, $4)',
-          [user.name, user.email, user.role, hashPassword(user.pass)]
+          [user.name, user.email.toLowerCase(), user.role, hashPassword(user.pass)]
         );
       }
       console.log('Default users seeded.');
@@ -114,11 +108,13 @@ async function initializeDatabase() {
 // Login
 app.post('/api/login', async (req, res) => {
   const { email, pass } = req.body;
+  if (!email || !pass) {
+    return res.status(400).json({ error: 'Email and password are required' });
+  }
   try {
-    const result = await pool.query('SELECT * FROM users WHERE email = $1 AND password_hash = $2', [email, hashPassword(pass)]);
+    const result = await pool.query('SELECT * FROM users WHERE email = $1 AND password_hash = $2', [email.toLowerCase(), hashPassword(pass)]);
     if (result.rows.length > 0) {
       const user = result.rows[0];
-      // Convert password_hash key for frontend compatibility
       const { password_hash, ...userResponse } = user;
       res.json({ ...userResponse, passwordHash: password_hash });
     } else {
@@ -145,10 +141,13 @@ app.post('/api/users', async (req, res) => {
     try {
         const result = await pool.query(
             'INSERT INTO users (name, email, role, password_hash) VALUES ($1, $2, $3, $4) RETURNING id, name, email, role, password_hash AS "passwordHash"',
-            [name, email, role, hashPassword(passwordHash)]
+            [name, email.toLowerCase(), role, hashPassword(passwordHash)]
         );
         res.status(201).json(result.rows[0]);
     } catch (error) {
+        if (error.code === '23505') { // Unique violation
+            return res.status(409).json({ error: 'A user with this email already exists.' });
+        }
         res.status(500).json({ error: 'Failed to add user' });
     }
 });
@@ -159,10 +158,13 @@ app.put('/api/users/:id', async (req, res) => {
     try {
         const result = await pool.query(
             'UPDATE users SET name = $1, email = $2, role = $3, password_hash = $4 WHERE id = $5 RETURNING id, name, email, role, password_hash AS "passwordHash"',
-            [name, email, role, passwordHash.length < 64 ? hashPassword(passwordHash) : passwordHash, id]
+            [name, email.toLowerCase(), role, passwordHash.length < 64 ? hashPassword(passwordHash) : passwordHash, id]
         );
         res.json(result.rows[0]);
     } catch (error) {
+        if (error.code === '23505') {
+            return res.status(409).json({ error: 'A user with this email already exists.' });
+        }
         res.status(500).json({ error: 'Failed to update user' });
     }
 });
@@ -215,7 +217,6 @@ app.get('/api/gradesheets', async (req, res) => {
 
 app.post('/api/gradesheets', async (req, res) => {
     const { groupName, proponents, selectedTitle, program, date, venue, panel1Id, panel2Id } = req.body;
-    // Fix for duplicate key error on fast creation
     const newId = `${Date.now()}-${crypto.randomBytes(4).toString('hex')}`;
     try {
         const result = await pool.query(
@@ -286,7 +287,6 @@ app.delete('/api/gradesheets/:id', async (req, res) => {
 
 app.delete('/api/gradesheets/all', async (req, res) => {
     try {
-        // This query now ONLY deletes from grade_sheets. User accounts are never touched.
         await pool.query('DELETE FROM grade_sheets');
         res.status(204).send();
     } catch (error) {
@@ -302,7 +302,6 @@ app.post('/api/restore', async (req, res) => {
     try {
         await client.query('BEGIN');
         
-        // Use DELETE FROM which is generally safer and requires fewer permissions than TRUNCATE
         await client.query('DELETE FROM grade_sheets');
         await client.query('DELETE FROM users');
 
@@ -340,7 +339,6 @@ const startServer = async () => {
     });
   } catch (error) {
     console.error('Failed to start server:', error);
-    // process.exit is handled by the initial check for FRONTEND_URL
   }
 };
 
