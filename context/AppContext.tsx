@@ -19,6 +19,7 @@ interface AppContextType {
     deleteUser: (userId: string) => Promise<void>;
     changePassword: (oldPass: string, newPass: string) => Promise<boolean>;
     addVenue: (venue: string) => void;
+    restoreData: (backupData: { users: User[], gradeSheets: GradeSheet[] }) => Promise<void>;
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
@@ -52,7 +53,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     const [currentUser, setCurrentUser] = useState<User | null>(null);
     const [users, setUsers] = useState<User[]>([]);
     const [gradeSheets, setGradeSheets] = useState<GradeSheet[]>([]);
-    const [venues, setVenues] = useState<string[]>(['AVR', 'CASE', 'Online']);
+    const [venues, setVenues] = useState<string[]>(['Room 404', 'Room 405', 'Auditorium']);
     const [isLoading, setIsLoading] = useState(true);
 
     useEffect(() => {
@@ -179,6 +180,11 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
             setVenues(prev => [...prev, venue]);
         }
     };
+
+    const restoreData = async (backupData: { users: User[], gradeSheets: GradeSheet[] }) => {
+        await api.restoreData(backupData);
+        // The page is reloaded in the component after this, so no need to refresh state here.
+    };
     
     const value = {
         currentUser,
@@ -197,6 +203,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         deleteUser,
         changePassword,
         addVenue,
+        restoreData,
     };
     
     if (isLoading) {
