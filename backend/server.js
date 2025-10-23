@@ -1,4 +1,3 @@
-
 const express = require('express');
 const cors = require('cors');
 const { Pool } = require('pg');
@@ -108,6 +107,7 @@ const initializeDatabase = async () => {
         }
     } catch (err) {
         console.error('Error during database initialization:', err.stack);
+        throw err; // Throw error to prevent server from starting in a bad state
     } finally {
         client.release();
     }
@@ -305,8 +305,17 @@ app.post('/api/restore', async (req, res) => {
 });
 
 // --- Start Server ---
-app.listen(port, () => {
-    console.log(`Server listening on port ${port}`);
-    // Initialize the database when the server starts
-    initializeDatabase();
-});
+const startServer = async () => {
+    try {
+        // Wait for the database to be initialized before starting the server
+        await initializeDatabase();
+        app.listen(port, () => {
+            console.log(`Server listening on port ${port}`);
+        });
+    } catch (error) {
+        console.error("FATAL: Failed to start server due to database initialization error.");
+        process.exit(1);
+    }
+};
+
+startServer();
