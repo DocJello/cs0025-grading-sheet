@@ -92,7 +92,7 @@ const UserModal: React.FC<UserModalProps> = ({ user, onClose, onSave }) => {
 
 
 const UserManagement: React.FC = () => {
-    const { currentUser, users, addUser, updateUser, deleteUser } = useAppContext();
+    const { currentUser, users, addUser, updateUser, deleteUser, gradeSheets } = useAppContext();
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingUser, setEditingUser] = useState<User | null>(null);
 
@@ -202,6 +202,16 @@ const UserManagement: React.FC = () => {
         }
     };
 
+    const handleExport = (data: any, filename: string) => {
+        const jsonString = `data:text/json;charset=utf-8,${encodeURIComponent(
+            JSON.stringify(data, null, 2)
+        )}`;
+        const link = document.createElement("a");
+        link.href = jsonString;
+        link.download = filename;
+        link.click();
+    };
+
     return (
         <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-8">
             <div className="flex justify-between items-center mb-6">
@@ -237,6 +247,21 @@ const UserManagement: React.FC = () => {
                         <li>New users will be assigned a password of '123'.</li>
                         <li>Valid roles are: 'Admin', 'Course Adviser', 'Panel'. Invalid roles will default to 'Panel'.</li>
                     </ul>
+                </div>
+            </div>
+
+            <div className="mb-8 bg-white p-6 rounded-lg shadow-md">
+                <h3 className="text-xl font-bold text-black mb-2">Data Export</h3>
+                <p className="text-base text-black mb-4">
+                    Download all application data as JSON files. This is useful for backing up data before your free-tier database expires.
+                </p>
+                <div className="flex space-x-4">
+                    <button onClick={() => handleExport(users, 'users-backup.json')} className="px-4 py-2 bg-green-700 text-white font-medium rounded-md hover:bg-green-800">
+                        Export Users (JSON)
+                    </button>
+                    <button onClick={() => handleExport(gradeSheets, 'gradesheets-backup.json')} className="px-4 py-2 bg-blue-600 text-white font-medium rounded-md hover:bg-blue-700">
+                        Export Grade Sheets (JSON)
+                    </button>
                 </div>
             </div>
             
