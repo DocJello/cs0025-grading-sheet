@@ -9,31 +9,20 @@ const app = express();
 const port = process.env.PORT || 3001;
 
 // --- CORS Configuration ---
-// Make it more robust to handle Vercel deployment URLs and user-set env vars.
-const frontendUrl = process.env.FRONTEND_URL ? process.env.FRONTEND_URL.replace(/\/$/, '') : undefined; // Remove trailing slash if present
+// This is a critical security configuration.
+const frontendUrl = process.env.FRONTEND_URL;
 
-const allowedOrigins = [
-    frontendUrl, // From Render environment variable
-    /https:\/\/cs0025-grading-sheet.*\.vercel\.app$/, // Regex to match Vercel preview/production URLs
-].filter(Boolean); // Remove undefined if FRONTEND_URL is not set
+if (!frontendUrl) {
+    console.error("FATAL ERROR: The FRONTEND_URL environment variable is not set.");
+    console.error("The backend server will not start without knowing the frontend's origin for CORS security.");
+    console.error("Please set this variable in your Render.com service configuration.");
+    process.exit(1); // Exit with a failure code
+}
+
+console.log(`CORS is configured to allow requests from origin: ${frontendUrl}`);
 
 const corsOptions = {
-  origin: (origin, callback) => {
-    // Allow requests with no origin (like server-to-server, Postman)
-    if (!origin) return callback(null, true);
-
-    if (allowedOrigins.length === 0) {
-        console.warn('CORS allowedOrigins is empty. Check your FRONTEND_URL environment variable.');
-        // Deny if not configured, for security.
-        return callback(new Error('CORS not configured on server.'));
-    }
-    
-    if (allowedOrigins.some(o => typeof o === 'string' ? o === origin : o.test(origin))) {
-      callback(null, true);
-    } else {
-      callback(new Error(`Origin ${origin} not allowed by CORS`));
-    }
-  },
+  origin: frontendUrl,
   optionsSuccessStatus: 200,
 };
 app.use(cors(corsOptions));
@@ -249,7 +238,7 @@ app.post('/api/gradesheets', async (req, res) => {
             panel2Grades: newSheet.panel2_grades,
             status: newSheet.status,
         });
-    } catch (error) => {
+    } catch (error) {
         console.error('Error adding grade sheet:', error);
         res.status(500).json({ error: error.message });
     }
@@ -279,7 +268,7 @@ app.put('/api/gradesheets/:id', async (req, res) => {
             panel2Grades: updatedSheet.panel2_grades,
             status: updatedSheet.status,
         });
-    } catch (error) => {
+    } catch (error) {
         console.error('Error updating grade sheet:', error);
         res.status(500).json({ error: error.message });
     }
@@ -297,8 +286,7 @@ app.delete('/api/gradesheets/:id', async (req, res) => {
 
 app.delete('/api/gradesheets/all', async (req, res) => {
     try {
-        // FIX: This query now ONLY deletes from grade_sheets. User accounts are never touched.
-        // This resolves the critical bug where users were being deleted.
+        // This query now ONLY deletes from grade_sheets. User accounts are never touched.
         await pool.query('DELETE FROM grade_sheets');
         res.status(204).send();
     } catch (error) {
@@ -352,7 +340,7 @@ const startServer = async () => {
     });
   } catch (error) {
     console.error('Failed to start server:', error);
-    process.exit(1);
+    // process.exit is handled by the initial check for FRONTEND_URL
   }
 };
 
