@@ -212,7 +212,7 @@ app.post('/api/gradesheets', async (req, res) => {
     try {
         const result = await pool.query(
             'INSERT INTO grade_sheets (id, "groupName", proponents, "proposedTitles", "selectedTitle", program, date, venue, "panel1Id", "panel2Id", "panel1Grades", "panel2Grades", status) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13) RETURNING *',
-            [id, groupName, proponents, proposedTitles, selectedTitle, program, date, venue, panel1Id, panel2Id, panel1Grades, panel2Grades, status]
+            [id, groupName, JSON.stringify(proponents || []), JSON.stringify(proposedTitles || []), selectedTitle, program, date, venue, panel1Id, panel2Id, JSON.stringify(panel1Grades || null), JSON.stringify(panel2Grades || null), status]
         );
         res.status(201).json(result.rows[0]);
     } catch (err) {
@@ -226,7 +226,7 @@ app.put('/api/gradesheets/:id', async (req, res) => {
     try {
         const result = await pool.query(
             'UPDATE grade_sheets SET "groupName" = $1, proponents = $2, "proposedTitles" = $3, "selectedTitle" = $4, program = $5, date = $6, venue = $7, "panel1Id" = $8, "panel2Id" = $9, "panel1Grades" = $10, "panel2Grades" = $11, status = $12 WHERE id = $13 RETURNING *',
-            [groupName, proponents, proposedTitles, selectedTitle, program, date, venue, panel1Id, panel2Id, panel1Grades, panel2Grades, status, id]
+            [groupName, JSON.stringify(proponents || []), JSON.stringify(proposedTitles || []), selectedTitle, program, date, venue, panel1Id, panel2Id, JSON.stringify(panel1Grades || null), JSON.stringify(panel2Grades || null), status, id]
         );
         res.json(result.rows[0]);
     } catch (err) {
