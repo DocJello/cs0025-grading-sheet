@@ -1,4 +1,3 @@
-
 import React, { createContext, useState, useContext, ReactNode, useEffect } from 'react';
 import { User, GradeSheet, GradeSheetStatus } from '../types';
 // FIX: Removed API_URL import as it's no longer used in this file.
@@ -16,6 +15,7 @@ interface AppContextType {
     updateGradeSheet: (sheet: GradeSheet) => Promise<void>;
     addGradeSheet: (sheetData: Omit<GradeSheet, 'id' | 'status'>) => Promise<void>;
     deleteGradeSheet: (sheetId: string) => Promise<void>;
+    deleteAllGradeSheets: () => Promise<void>;
     addUser: (userData: Omit<User, 'id'>) => Promise<void>;
     updateUser: (user: User) => Promise<void>;
     deleteUser: (userId: string) => Promise<void>;
@@ -117,6 +117,11 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         setGradeSheets(prev => prev.filter(s => s.id !== sheetId));
     };
 
+    const deleteAllGradeSheets = async () => {
+        await api.deleteAllGradeSheets();
+        setGradeSheets([]);
+    };
+
     const addUser = async (userData: Omit<User, 'id'>) => {
         const newUser = await api.addUser(userData);
         setUsers(prev => [...prev, newUser]);
@@ -177,6 +182,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         updateGradeSheet,
         addGradeSheet,
         deleteGradeSheet,
+        deleteAllGradeSheets,
         addUser,
         updateUser,
         deleteUser,
