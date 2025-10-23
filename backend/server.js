@@ -244,6 +244,19 @@ app.delete('/api/gradesheets/:id', async (req, res) => {
     }
 });
 
+// FIX: New endpoint to delete all grade sheets.
+app.delete('/api/gradesheets/all', async (req, res) => {
+    try {
+        // TRUNCATE is faster and resets any auto-incrementing counters if they existed.
+        await pool.query('TRUNCATE TABLE grade_sheets RESTART IDENTITY');
+        res.status(204).send();
+    } catch (err) {
+        console.error('Error truncating grade_sheets table:', err.stack);
+        res.status(500).json({ error: `Failed to delete all grade sheets: ${err.message}` });
+    }
+});
+
+
 // Restore Endpoint
 app.post('/api/restore', async (req, res) => {
     const { users, gradeSheets } = req.body;
