@@ -93,7 +93,7 @@ const UserModal: React.FC<UserModalProps> = ({ user, onClose, onSave }) => {
 
 const UserManagement: React.FC = () => {
     const { currentUser, users, addUser, updateUser, deleteUser, gradeSheets, restoreData, deleteAllGradeSheets } = useAppContext();
-    const [isModalOpen, setIsModalOpen(false);
+    const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingUser, setEditingUser] = useState<User | null>(null);
     const [restoreFile, setRestoreFile] = useState<File | null>(null);
     const [showDeleteAllModal, setShowDeleteAllModal] = useState(false);
