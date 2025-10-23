@@ -92,12 +92,10 @@ const UserModal: React.FC<UserModalProps> = ({ user, onClose, onSave }) => {
 
 
 const UserManagement: React.FC = () => {
-    const { currentUser, users, addUser, updateUser, deleteUser, gradeSheets, restoreData, deleteAllGradeSheets } = useAppContext();
+    const { currentUser, users, addUser, updateUser, deleteUser, gradeSheets, restoreData } = useAppContext();
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingUser, setEditingUser] = useState<User | null>(null);
     const [restoreFile, setRestoreFile] = useState<File | null>(null);
-    const [showDeleteAllModal, setShowDeleteAllModal] = useState(false);
-    const [deleteConfirmationText, setDeleteConfirmationText] = useState('');
 
     const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
         const file = event.target.files?.[0];
@@ -267,14 +265,6 @@ const UserManagement: React.FC = () => {
         reader.readAsText(restoreFile);
     };
 
-    const handleDeleteAllSheets = async () => {
-        await deleteAllGradeSheets();
-        alert('All grade sheets have been successfully deleted.');
-        setShowDeleteAllModal(false);
-        setDeleteConfirmationText('');
-    };
-
-
     return (
         <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-8">
             <div className="flex justify-between items-center mb-6">
@@ -295,17 +285,25 @@ const UserManagement: React.FC = () => {
                         </tr>
                     </thead>
                     <tbody className="bg-white divide-y divide-gray-200">
-                        {users.map(user => (
-                            <tr key={user.id}>
-                                <td className="px-6 py-4 whitespace-nowrap text-base font-medium text-black">{user.name}</td>
-                                <td className="px-6 py-4 whitespace-nowrap text-base text-black">{user.email}</td>
-                                <td className="px-6 py-4 whitespace-nowrap text-base text-black">{user.role}</td>
-                                <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium space-x-2">
-                                    <button onClick={() => handleEdit(user)} className="text-green-700 hover:text-green-900 p-1" aria-label={`Edit ${user.name}`}><EditIcon className="w-5 h-5"/></button>
-                                    <button onClick={() => handleDelete(user.id)} className="text-red-600 hover:text-red-900 p-1 disabled:opacity-50" disabled={user.id === currentUser?.id} aria-label={`Delete ${user.name}`}><TrashIcon className="w-5 h-5"/></button>
+                        {users.length > 0 ? (
+                            users.map(user => (
+                                <tr key={user.id}>
+                                    <td className="px-6 py-4 whitespace-nowrap text-base font-medium text-black">{user.name}</td>
+                                    <td className="px-6 py-4 whitespace-nowrap text-base text-black">{user.email}</td>
+                                    <td className="px-6 py-4 whitespace-nowrap text-base text-black">{user.role}</td>
+                                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium space-x-2">
+                                        <button onClick={() => handleEdit(user)} className="text-green-700 hover:text-green-900 p-1" aria-label={`Edit ${user.name}`}><EditIcon className="w-5 h-5"/></button>
+                                        <button onClick={() => handleDelete(user.id)} className="text-red-600 hover:text-red-900 p-1 disabled:opacity-50" disabled={user.id === currentUser?.id} aria-label={`Delete ${user.name}`}><TrashIcon className="w-5 h-5"/></button>
+                                    </td>
+                                </tr>
+                            ))
+                        ) : (
+                            <tr>
+                                <td colSpan={4} className="px-6 py-10 text-center text-gray-500">
+                                    No users found.
                                 </td>
                             </tr>
-                        ))}
+                        )}
                     </tbody>
                 </table>
             </div>
@@ -339,22 +337,10 @@ const UserManagement: React.FC = () => {
                 </div>
             </div>
 
-            <div className="mb-8 bg-white p-6 rounded-lg shadow-md">
-                <h3 className="text-xl font-bold text-black mb-2">Data Backup</h3>
-                <p className="text-base text-black mb-4">
-                    Create a full backup of all users and grade sheets as a single JSON file. This can be used to restore the system's state later.
-                </p>
-                <div className="flex space-x-4">
-                    <button onClick={handleFullBackup} className="px-4 py-2 bg-green-700 text-white font-medium rounded-md hover:bg-green-800">
-                        Create Full Backup (JSON)
-                    </button>
-                </div>
-            </div>
-            
             <div className="border-2 border-red-500 rounded-lg p-6">
                 <h3 className="text-2xl font-bold text-red-700 mb-4">Danger Zone</h3>
                 
-                <div className="bg-red-50 border-l-4 border-red-500 p-4 rounded-md mb-6">
+                <div className="bg-red-50 border-l-4 border-red-500 p-4 rounded-md">
                     <h4 className="text-lg font-bold text-red-800">Restore from Backup</h4>
                     <p className="text-base text-red-900 mt-2 mb-4">
                         <span className="font-bold">Warning:</span> Restoring from a backup will completely overwrite all existing users and grade sheets in the database. This action cannot be undone.
@@ -372,52 +358,9 @@ const UserManagement: React.FC = () => {
                         </button>
                     </div>
                 </div>
-
-                <div className="bg-red-50 border-l-4 border-red-500 p-4 rounded-md">
-                    <h4 className="text-lg font-bold text-red-800">Delete All Grade Sheets</h4>
-                    <p className="text-base text-red-900 mt-2 mb-4">
-                        Permanently delete all grade sheets, panel assignments, and submitted grades from the system. This action cannot be undone and is useful for cleaning up at the end of a semester. Users will not be affected.
-                    </p>
-                    <button onClick={() => setShowDeleteAllModal(true)} className="px-4 py-2 bg-red-700 text-white font-medium rounded-md hover:bg-red-800">
-                        Delete All Grade Sheets...
-                    </button>
-                </div>
             </div>
 
             {isModalOpen && <UserModal user={editingUser} onClose={() => setIsModalOpen(false)} onSave={handleSave} />}
-
-            {showDeleteAllModal && (
-                <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50">
-                    <div className="bg-white rounded-lg shadow-xl p-6 w-full max-w-md">
-                        <h3 className="text-xl font-bold text-red-700 mb-4">Confirm Permanent Deletion</h3>
-                        <p className="mb-4 text-sm text-gray-700">
-                            This will permanently delete ALL grade sheets and their associated grades. This action cannot be undone.
-                        </p>
-                        <p className="mb-4 text-sm text-gray-700">
-                            Please type <strong className="font-mono bg-red-100 text-red-800 px-1 rounded">DELETE ALL</strong> to confirm.
-                        </p>
-                        <input
-                            type="text"
-                            value={deleteConfirmationText}
-                            onChange={(e) => setDeleteConfirmationText(e.target.value)}
-                            className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-red-500 focus:border-red-500"
-                        />
-                        <div className="flex justify-end space-x-2 pt-4 mt-2">
-                            <button type="button" onClick={() => {setShowDeleteAllModal(false); setDeleteConfirmationText('');}} className="px-4 py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300">
-                                Cancel
-                            </button>
-                            <button 
-                                type="button" 
-                                onClick={handleDeleteAllSheets}
-                                disabled={deleteConfirmationText !== 'DELETE ALL'}
-                                className="px-4 py-2 bg-red-700 text-white rounded-md hover:bg-red-800 disabled:opacity-50 disabled:cursor-not-allowed"
-                            >
-                                Delete Everything
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            )}
         </div>
     );
 };
