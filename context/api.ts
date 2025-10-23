@@ -19,7 +19,7 @@ import { User, GradeSheet, GradeSheetStatus } from '../types';
 //    ✅ Your application WILL NOT WORK until you complete this step.
 //
 // =====================================================================================
-export const API_URL = 'https://YOUR_RENDER_BACKEND_URL_HERE.onrender.com';
+export const API_URL = 'https://cs0025-grading-sheet.onrender.com';
 // =====================================================================================
 
 
