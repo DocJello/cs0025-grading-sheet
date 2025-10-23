@@ -76,7 +76,23 @@ const GradingSheet: React.FC<GradingSheetProps> = ({ gradeSheetId, setPage }) =>
     const [newVenue, setNewVenue] = useState('');
     const [showSuccess, setShowSuccess] = useState(false);
 
-    const areDetailsSet = sheet?.selectedTitle && sheet.selectedTitle !== 'Untitled Project' && sheet.program && sheet.date !== 'Not Set' && sheet.venue !== 'Not Set';
+    // FIX: Re-implement logic to conditionally show grading rubrics.
+    // A group from a spreadsheet upload will have 'Untitled Project' as its title.
+    const isUploadedAndUntouched = useMemo(() => sheet?.selectedTitle === 'Untitled Project', [sheet]);
+
+    // Details are considered set only when Panel 1 has filled them out properly.
+    const areDetailsSet = useMemo(() => 
+        sheet?.selectedTitle && 
+        sheet.selectedTitle !== 'Untitled Project' && 
+        sheet.program && 
+        sheet.date && 
+        sheet.date !== 'Not Set' && 
+        sheet.venue &&
+        sheet.venue !== 'Not Set', 
+    [sheet]);
+    
+    // Show rubrics if: user is not Panel 1, OR details are set, OR it's a fresh spreadsheet upload.
+    const showGradingRubrics = !isPanel1 || areDetailsSet || isUploadedAndUntouched;
 
     useEffect(() => {
         if (sheet) {
@@ -247,7 +263,23 @@ const GradingSheet: React.FC<GradingSheetProps> = ({ gradeSheetId, setPage }) =>
                 )}
             </div>
 
-            {areDetailsSet && grades && (
+            {/* FIX: Conditionally render rubrics based on user role and whether details have been set. */}
+            {!showGradingRubrics && isPanel1 && (
+                <div className="bg-yellow-50 border-l-4 border-yellow-400 p-4 my-8 shadow-lg rounded-r-lg">
+                    <div className="flex">
+                        <div className="flex-shrink-0">
+                            <InfoIcon className="h-5 w-5 text-yellow-400" />
+                        </div>
+                        <div className="ml-3">
+                            <p className="text-sm text-yellow-700">
+                                <strong>Action Required:</strong> Please fill in and save the presentation details above to unlock the grading rubrics.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {showGradingRubrics && grades && (
             <>
                 {/* Title Defense Rubric */}
                 <div className="bg-white shadow-lg rounded-lg p-8 mb-8">
