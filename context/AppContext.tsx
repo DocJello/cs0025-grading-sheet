@@ -102,14 +102,24 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     };
     
     const updateGradeSheet = async (sheet: GradeSheet) => {
-        const updatedSheetWithStatus = { ...sheet, status: updateGradeSheetStatus(sheet) };
-        const savedSheet = await api.updateGradeSheet(updatedSheetWithStatus);
-        setGradeSheets(prev => prev.map(s => s.id === sheet.id ? savedSheet : s));
+        try {
+            const updatedSheetWithStatus = { ...sheet, status: updateGradeSheetStatus(sheet) };
+            const savedSheet = await api.updateGradeSheet(updatedSheetWithStatus);
+            setGradeSheets(prev => prev.map(s => s.id === sheet.id ? savedSheet : s));
+        } catch (error) {
+            console.error("Failed to update grade sheet:", error);
+            alert(`Error: Could not update the group. ${(error as Error).message}`);
+        }
     };
 
     const addGradeSheet = async (sheetData: Omit<GradeSheet, 'id' | 'status'>) => {
-        const newSheet = await api.addGradeSheet(sheetData);
-        setGradeSheets(prev => [...prev, newSheet]);
+        try {
+            const newSheet = await api.addGradeSheet(sheetData);
+            setGradeSheets(prev => [...prev, newSheet]);
+        } catch (error) {
+            console.error("Failed to add grade sheet:", error);
+            alert(`Error: Could not add the group. ${(error as Error).message}`);
+        }
     };
     
     const deleteGradeSheet = async (sheetId: string) => {
