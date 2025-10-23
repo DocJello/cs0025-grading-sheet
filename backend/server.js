@@ -14,31 +14,26 @@ const pool = new Pool({
 });
 
 // --- CORS Configuration ---
-// This allows your Vercel frontend to communicate with this backend
-const frontendUrl = process.env.FRONTEND_URL;
-if (!frontendUrl) {
-    console.error("FATAL ERROR: FRONTEND_URL environment variable is not set.");
-    // In a real production environment, you might want to exit the process
-    // process.exit(1); 
-}
-
+// This allows your Vercel frontend to communicate with this backend.
 const corsOptions = {
     origin: (origin, callback) => {
-        // Allow requests with no origin (like server-to-server or REST tools)
-        if (!origin) return callback(null, true);
-
-        // Flexible whitelisting for Vercel's main and preview URLs
+        // Regex to match all possible Vercel deployment URLs for this project
+        // e.g. https://cs0025-grading-sheet.vercel.app
         // e.g. https://cs0025-grading-sheet-git-main-....vercel.app
-        // and  https://cs0025-grading-sheet-....vercel.app
-        const vercelBaseDomain = 'cs0025-grading-sheet';
-        const vercelProjectDomain = 'vercel.app';
-        
-        if (origin.includes(vercelBaseDomain) && origin.endsWith(vercelProjectDomain)) {
+        const vercelRegex = /^https:\/\/cs0025-grading-sheet.*\.vercel\.app$/;
+
+        // Allow requests with no origin (like server-to-server or REST tools)
+        if (!origin) {
             return callback(null, true);
         }
 
-        // Also allow the exact URL from environment variable for safety
-        if (origin === frontendUrl) {
+        // Allow the specific frontend URL from environment variables, if set.
+        if (process.env.FRONTEND_URL && origin === process.env.FRONTEND_URL) {
+            return callback(null, true);
+        }
+        
+        // Allow if the origin matches the Vercel deployment URL pattern.
+        if (vercelRegex.test(origin)) {
             return callback(null, true);
         }
         
@@ -48,6 +43,7 @@ const corsOptions = {
     methods: ['GET', 'POST', 'PUT', 'DELETE'],
     allowedHeaders: ['Content-Type']
 };
+
 app.use(cors(corsOptions));
 app.use(express.json({ limit: '10mb' })); // Increase payload limit for backups
 
@@ -208,7 +204,8 @@ app.get('/api/gradesheets', async (req, res) => {
 
 app.post('/api/gradesheets', async (req, res) => {
     const { groupName, proponents, proposedTitles, selectedTitle, program, date, venue, panel1Id, panel2Id, panel1Grades, panel2Grades, status } = req.body;
-    const id = `gs_${Date.now()}`;
+    // FIX: Append a random string to the ID to ensure uniqueness during fast, consecutive requests.
+    const id = `gs_${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
     try {
         const result = await pool.query(
             'INSERT INTO grade_sheets (id, "groupName", proponents, "proposedTitles", "selectedTitle", program, date, venue, "panel1Id", "panel2Id", "panel1Grades", "panel2Grades", status) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13) RETURNING *',
@@ -244,7 +241,6 @@ app.delete('/api/gradesheets/:id', async (req, res) => {
     }
 });
 
-// FIX: New endpoint to delete all grade sheets.
 app.delete('/api/gradesheets/all', async (req, res) => {
     try {
         // TRUNCATE is faster and resets any auto-incrementing counters if they existed.
