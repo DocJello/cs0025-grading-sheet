@@ -50,7 +50,7 @@ const corsOptions = {
     allowedHeaders: ['Content-Type']
 };
 app.use(cors(corsOptions));
-app.use(express.json());
+app.use(express.json({ limit: '10mb' })); // Increase payload limit for backups
 
 
 // --- Automatic Database Initialization ---
@@ -241,6 +241,66 @@ app.delete('/api/gradesheets/:id', async (req, res) => {
         res.status(204).send();
     } catch (err) {
         res.status(500).json({ error: err.message });
+    }
+});
+
+// Restore Endpoint
+app.post('/api/restore', async (req, res) => {
+    const { users, gradeSheets } = req.body;
+
+    if (!Array.isArray(users) || !Array.isArray(gradeSheets)) {
+        return res.status(400).json({ error: 'Invalid backup data format.' });
+    }
+
+    const client = await pool.connect();
+    try {
+        await client.query('BEGIN');
+
+        // Clear existing data. TRUNCATE is faster and resets identity columns.
+        await client.query('TRUNCATE TABLE grade_sheets, users RESTART IDENTITY');
+
+        // Restore users
+        for (const user of users) {
+            const userQuery = `
+                INSERT INTO users (id, name, email, role, "passwordHash") 
+                VALUES ($1, $2, $3, $4, $5)
+            `;
+            const userValues = [user.id, user.name, user.email, user.role, user.passwordHash];
+            await client.query(userQuery, userValues);
+        }
+
+        // Restore grade sheets
+        for (const sheet of gradeSheets) {
+            const sheetQuery = `
+                INSERT INTO grade_sheets (id, "groupName", proponents, "proposedTitles", "selectedTitle", program, date, venue, "panel1Id", "panel2Id", "panel1Grades", "panel2Grades", status) 
+                VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
+            `;
+            const sheetValues = [
+                sheet.id,
+                sheet.groupName,
+                JSON.stringify(sheet.proponents || []),
+                JSON.stringify(sheet.proposedTitles || []),
+                sheet.selectedTitle || null,
+                sheet.program || null,
+                sheet.date || null,
+                sheet.venue || null,
+                sheet.panel1Id || null,
+                sheet.panel2Id || null,
+                JSON.stringify(sheet.panel1Grades || null),
+                JSON.stringify(sheet.panel2Grades || null),
+                sheet.status
+            ];
+            await client.query(sheetQuery, sheetValues);
+        }
+
+        await client.query('COMMIT');
+        res.status(200).json({ message: 'Database restored successfully.' });
+    } catch (err) {
+        await client.query('ROLLBACK');
+        console.error('Error during database restore:', err.stack);
+        res.status(500).json({ error: `Failed to restore database: ${err.message}` });
+    } finally {
+        client.release();
     }
 });
 
