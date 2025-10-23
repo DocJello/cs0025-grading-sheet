@@ -162,30 +162,51 @@ const GroupManagement: React.FC<{ setPage: (page: Page) => void; }> = ({ setPage
                     return;
                 }
 
-                const groups: { [key: string]: string[] } = {};
-                const errors: string[] = [];
+                const existingGroupNames = new Set(gradeSheets.map(g => g.groupName.toLowerCase()));
+                const allExistingProponents = new Set(gradeSheets.flatMap(g => g.proponents.map(p => p.name.toLowerCase())));
                 
+                const groupsFromFile: { [key: string]: string[] } = {};
+                const proponentsInFile = new Set<string>();
+                const errors: string[] = [];
+
+                // First pass: Aggregate proponents into groups and check for duplicates WITHIN the file.
                 json.forEach((row: any, index: number) => {
-                    const groupName = row[groupKey];
-                    const proponentName = row[proponentKey];
+                    const groupName = row[groupKey]?.trim();
+                    const proponentName = row[proponentKey]?.trim();
 
                     if (!groupName || !proponentName) {
                         errors.push(`Row ${index + 2}: Skipped because GroupName or ProponentName is empty.`);
                         return;
                     }
-
-                    if (!groups[groupName]) {
-                        groups[groupName] = [];
-                    }
-                    groups[groupName].push(proponentName);
-                });
-
-                let addedCount = 0;
-                Object.entries(groups).forEach(([groupName, proponents]) => {
-                    if (gradeSheets.some(gs => gs.groupName.toLowerCase() === groupName.toLowerCase())) {
-                        errors.push(`Group "${groupName}": Skipped because it already exists.`);
+                    
+                    const lowerProponentName = proponentName.toLowerCase();
+                    if (proponentsInFile.has(lowerProponentName)) {
+                        errors.push(`Row ${index + 2}: Skipped. Proponent "${proponentName}" is listed more than once in this file.`);
                         return;
                     }
+                    proponentsInFile.add(lowerProponentName);
+
+                    if (!groupsFromFile[groupName]) {
+                        groupsFromFile[groupName] = [];
+                    }
+                    groupsFromFile[groupName].push(proponentName);
+                });
+
+                // Second pass: Validate groups against database and add them.
+                let addedCount = 0;
+                Object.entries(groupsFromFile).forEach(([groupName, proponents]) => {
+                    if (existingGroupNames.has(groupName.toLowerCase())) {
+                        errors.push(`Group "${groupName}": Skipped because it already exists in the database.`);
+                        return;
+                    }
+
+                    for (const proponent of proponents) {
+                        if (allExistingProponents.has(proponent.toLowerCase())) {
+                            errors.push(`Group "${groupName}": Skipped because proponent "${proponent}" is already in another group in the database.`);
+                            return; // Stop processing this entire group
+                        }
+                    }
+
                     const newGroup: Omit<GradeSheet, 'id' | 'status'> = {
                         groupName,
                         proponents: proponents.map(name => ({ id: crypto.randomUUID(), name })),
@@ -201,11 +222,12 @@ const GroupManagement: React.FC<{ setPage: (page: Page) => void; }> = ({ setPage
                     addedCount++;
                 });
                 
-                let alertMessage = `${addedCount} group(s) added successfully.`;
+                let alertMessage = `${addedCount} new group(s) added successfully.`;
                 if (errors.length > 0) {
-                    alertMessage += `\n\nNotes/Errors during import:\n${errors.join('\n')}`;
+                    alertMessage += `\n\nNotes & Errors:\n${errors.join('\n')}`;
                 }
                 alert(alertMessage);
+
             } catch (error) {
                 alert("Failed to process the file. Please ensure it's a valid .xlsx or .csv file.");
                 console.error(error);
