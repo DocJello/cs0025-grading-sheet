@@ -234,7 +234,7 @@ const GroupManagement: React.FC<{ setPage: (page: Page) => void; }> = ({ setPage
 
     const handleDeleteAll = () => {
         const confirmation = window.prompt(
-            'WARNING: This will ERASE all groups and their associated grades. This action cannot be undone.\n\nTo confirm, type "DELETE ALL" in the box below.'
+            'WARNING: This will permanently ERASE all groups and their associated grades from the database. This action cannot be undone.\n\nTo confirm, type "DELETE ALL" in the box below.'
         );
         if (confirmation === 'DELETE ALL') {
             deleteAllGradeSheets();
@@ -255,14 +255,9 @@ const GroupManagement: React.FC<{ setPage: (page: Page) => void; }> = ({ setPage
         <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-8">
             <div className="flex justify-between items-center mb-6">
                 <h2 className="text-3xl font-bold text-gray-800">Group Management</h2>
-                <div className="flex space-x-2">
-                    <button onClick={handleAdd} className="px-4 py-2 bg-green-700 text-white font-medium rounded-md hover:bg-green-800">
-                        Add New Group
-                    </button>
-                    <button onClick={handleDeleteAll} className="px-4 py-2 bg-red-600 text-white font-medium rounded-md hover:bg-red-700">
-                        Delete All Groups
-                    </button>
-                </div>
+                <button onClick={handleAdd} className="px-4 py-2 bg-green-700 text-white font-medium rounded-md hover:bg-green-800">
+                    Add New Group
+                </button>
             </div>
 
             <div className="bg-white shadow-md rounded-lg overflow-x-auto mb-8">
@@ -284,7 +279,6 @@ const GroupManagement: React.FC<{ setPage: (page: Page) => void; }> = ({ setPage
                                     </td>
                                     <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium space-x-2">
                                         <button onClick={() => handleEdit(group)} className="text-green-700 hover:text-green-900 p-1" aria-label={`Edit ${group.groupName}`}><EditIcon className="w-5 h-5"/></button>
-
                                         <button onClick={() => handleDelete(group.id)} className="text-red-600 hover:text-red-900 p-1" aria-label={`Delete ${group.groupName}`}><TrashIcon className="w-5 h-5"/></button>
                                     </td>
                                 </tr>
@@ -300,7 +294,7 @@ const GroupManagement: React.FC<{ setPage: (page: Page) => void; }> = ({ setPage
                 </table>
             </div>
 
-            <div className="bg-white p-6 rounded-lg shadow-md">
+            <div className="bg-white p-6 rounded-lg shadow-md mb-8">
                 <h3 className="text-xl font-bold text-black mb-2">Bulk Add Groups</h3>
                 <p className="text-base text-black mb-4">Add multiple groups by uploading an XLSX or CSV file.</p>
                 <input
@@ -326,6 +320,21 @@ const GroupManagement: React.FC<{ setPage: (page: Page) => void; }> = ({ setPage
                         <li>Each row represents one proponent belonging to a group.</li>
                         <li>Rows with the same <span className="font-mono bg-gray-200 px-1 rounded">GroupName</span> will be merged into a single group.</li>
                     </ul>
+                </div>
+            </div>
+            
+            <div className="border-2 border-red-500 rounded-lg p-6">
+                <h3 className="text-2xl font-bold text-red-700 mb-4">Danger Zone</h3>
+                <div className="bg-red-50 border-l-4 border-red-500 p-4 rounded-md">
+                    <h4 className="text-lg font-bold text-red-800">Delete All Groups & Grades</h4>
+                    <p className="text-base text-red-900 mt-2 mb-4">
+                        <span className="font-bold">Warning:</span> This will permanently delete all group and grading data from the system. This action cannot be undone and does not affect user accounts.
+                    </p>
+                    <div className="text-right">
+                        <button onClick={handleDeleteAll} className="px-4 py-2 bg-red-600 text-white font-medium rounded-md hover:bg-red-700">
+                            Delete All Groups...
+                        </button>
+                    </div>
                 </div>
             </div>
 
