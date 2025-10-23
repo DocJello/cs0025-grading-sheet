@@ -142,6 +142,10 @@ export const api = {
         return apiFetch(`/api/gradesheets/${sheetId}`, { method: 'DELETE' });
     },
 
+    deleteAllGradeSheets: async (): Promise<void> => {
+        return apiFetch('/api/gradesheets/all', { method: 'DELETE' });
+    },
+
     restoreData: async (backupData: { users: User[], gradeSheets: GradeSheet[] }): Promise<void> => {
         return apiFetch('/api/restore', {
             method: 'POST',
