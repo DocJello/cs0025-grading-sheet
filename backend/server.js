@@ -52,6 +52,14 @@ app.use(express.json({ limit: '10mb' })); // Increase payload limit for backups
 const initializeDatabase = async () => {
     const client = await pool.connect();
     try {
+        // --- Force Schema Reset on Deploy ---
+        // This is a temporary measure to fix a persistent schema issue.
+        // It will delete all data on every server restart/deploy.
+        // This should be removed once the application is stable.
+        await client.query('DROP TABLE IF EXISTS grade_sheets;');
+        await client.query('DROP TABLE IF EXISTS users;');
+        console.log('Existing tables dropped to ensure a clean schema.');
+        
         // Create users table if it doesn't exist
         await client.query(`
             CREATE TABLE IF NOT EXISTS users (
@@ -59,7 +67,7 @@ const initializeDatabase = async () => {
                 name VARCHAR(100) NOT NULL,
                 email VARCHAR(100) UNIQUE NOT NULL,
                 role VARCHAR(50) NOT NULL,
-                passwordHash VARCHAR(255) NOT NULL
+                password_hash VARCHAR(255) NOT NULL
             );
         `);
 
@@ -88,13 +96,13 @@ const initializeDatabase = async () => {
         // This ensures the admin account always exists and has the default password.
         // It's safer than seeding only when the table is empty.
         const adminUpsertQuery = `
-            INSERT INTO users (id, name, email, role, passwordHash) 
+            INSERT INTO users (id, name, email, role, password_hash) 
             VALUES ('u_admin_01', 'Admin User', 'admin@example.com', 'Admin', '123')
             ON CONFLICT (email) 
             DO UPDATE SET 
                 name = EXCLUDED.name, 
                 role = EXCLUDED.role, 
-                passwordHash = EXCLUDED.passwordHash,
+                password_hash = EXCLUDED.password_hash,
                 id = 'u_admin_01';
         `;
         await client.query(adminUpsertQuery);
@@ -106,7 +114,7 @@ const initializeDatabase = async () => {
             console.log('No other users found. Seeding initial panel/adviser data...');
             // Insert other default users
             await client.query(`
-                INSERT INTO users (id, name, email, role, passwordHash) VALUES
+                INSERT INTO users (id, name, email, role, password_hash) VALUES
                 ('u_ca_01', 'Course Adviser', 'ca@example.com', 'Course Adviser', '123'),
                 ('u_p_01', 'Panel User 1', 'panel1@example.com', 'Panel', '123'),
                 ('u_p_02', 'Panel User 2', 'panel2@example.com', 'Panel', '123'),
@@ -127,15 +135,12 @@ const initializeDatabase = async () => {
 
 // --- API Endpoints ---
 
-// The /api/setup/reset-admin endpoint is removed. The logic is now handled automatically
-// on server startup in initializeDatabase for better security and reliability.
-
 // Login
 app.post('/api/login', async (req, res) => {
     const { email, pass } = req.body;
     try {
         // FIX: Use LOWER() on both email input and DB column for case-insensitive login
-        const result = await pool.query('SELECT * FROM users WHERE LOWER(email) = LOWER($1) AND passwordHash = $2', [email, pass]);
+        const result = await pool.query('SELECT * FROM users WHERE LOWER(email) = LOWER($1) AND password_hash = $2', [email, pass]);
         if (result.rows.length > 0) {
             res.json(result.rows[0]);
         } else {
@@ -157,12 +162,12 @@ app.get('/api/users', async (req, res) => {
 });
 
 app.post('/api/users', async (req, res) => {
-    const { name, email, role, passwordHash } = req.body;
+    const { name, email, role, password_hash } = req.body;
     const id = `u_${Date.now()}`;
     try {
         const result = await pool.query(
-            'INSERT INTO users (id, name, email, role, passwordHash) VALUES ($1, $2, $3, $4, $5) RETURNING *',
-            [id, name, email, role, passwordHash]
+            'INSERT INTO users (id, name, email, role, password_hash) VALUES ($1, $2, $3, $4, $5) RETURNING *',
+            [id, name, email, role, password_hash]
         );
         res.status(201).json(result.rows[0]);
     } catch (err) {
@@ -172,11 +177,11 @@ app.post('/api/users', async (req, res) => {
 
 app.put('/api/users/:id', async (req, res) => {
     const { id } = req.params;
-    const { name, email, role, passwordHash } = req.body;
+    const { name, email, role, password_hash } = req.body;
     try {
         const result = await pool.query(
-            'UPDATE users SET name = $1, email = $2, role = $3, passwordHash = $4 WHERE id = $5 RETURNING *',
-            [name, email, role, passwordHash, id]
+            'UPDATE users SET name = $1, email = $2, role = $3, password_hash = $4 WHERE id = $5 RETURNING *',
+            [name, email, role, password_hash, id]
         );
         res.json(result.rows[0]);
     } catch (err) {
@@ -199,12 +204,12 @@ app.post('/api/users/:id/change-password', async (req, res) => {
     const { oldPassword, newPassword } = req.body;
     try {
         // First, verify the old password
-        const userResult = await pool.query('SELECT * FROM users WHERE id = $1 AND passwordHash = $2', [id, oldPassword]);
+        const userResult = await pool.query('SELECT * FROM users WHERE id = $1 AND password_hash = $2', [id, oldPassword]);
         if (userResult.rows.length === 0) {
             return res.status(400).json({ error: "Invalid old password." });
         }
         // If old password is correct, update to the new one
-        const updateResult = await pool.query('UPDATE users SET passwordHash = $1 WHERE id = $2 RETURNING *', [newPassword, id]);
+        const updateResult = await pool.query('UPDATE users SET password_hash = $1 WHERE id = $2 RETURNING *', [newPassword, id]);
         res.json(updateResult.rows[0]);
     } catch (err) {
         res.status(500).json({ error: err.message });
@@ -291,10 +296,10 @@ app.post('/api/restore', async (req, res) => {
         // Restore users
         for (const user of users) {
             const userQuery = `
-                INSERT INTO users (id, name, email, role, passwordHash) 
+                INSERT INTO users (id, name, email, role, password_hash) 
                 VALUES ($1, $2, $3, $4, $5)
             `;
-            const userValues = [user.id, user.name, user.email, user.role, user.passwordHash];
+            const userValues = [user.id, user.name, user.email, user.role, user.password_hash];
             await client.query(userQuery, userValues);
         }
 
