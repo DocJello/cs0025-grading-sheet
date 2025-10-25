@@ -59,7 +59,7 @@ const initializeDatabase = async () => {
                 name VARCHAR(100) NOT NULL,
                 email VARCHAR(100) UNIQUE NOT NULL,
                 role VARCHAR(50) NOT NULL,
-                "passwordHash" VARCHAR(255) NOT NULL
+                passwordHash VARCHAR(255) NOT NULL
             );
         `);
 
@@ -90,7 +90,7 @@ const initializeDatabase = async () => {
             console.log('Users table is empty. Seeding initial data...');
             // Insert default users
             await client.query(`
-                INSERT INTO users (id, name, email, role, "passwordHash") VALUES
+                INSERT INTO users (id, name, email, role, passwordHash) VALUES
                 ('u_admin_01', 'Admin User', 'admin@example.com', 'Admin', '123'),
                 ('u_ca_01', 'Course Adviser', 'ca@example.com', 'Course Adviser', '123'),
                 ('u_p_01', 'Panel User 1', 'panel1@example.com', 'Panel', '123'),
@@ -115,13 +115,13 @@ const initializeDatabase = async () => {
 app.get('/api/setup/reset-admin', async (req, res) => {
     try {
         const query = `
-            INSERT INTO users (id, name, email, role, "passwordHash") 
+            INSERT INTO users (id, name, email, role, passwordHash) 
             VALUES ('u_admin_01', 'Admin User', 'admin@example.com', 'Admin', '123')
             ON CONFLICT (email) 
             DO UPDATE SET 
                 name = EXCLUDED.name, 
                 role = EXCLUDED.role, 
-                "passwordHash" = EXCLUDED."passwordHash";
+                passwordHash = EXCLUDED.passwordHash;
         `;
         await pool.query(query);
         res.status(200).send('Admin user created or reset successfully. You can now log in with email: admin@example.com and password: 123');
@@ -137,7 +137,7 @@ app.post('/api/login', async (req, res) => {
     const { email, pass } = req.body;
     try {
         // FIX: Use LOWER() on both email input and DB column for case-insensitive login
-        const result = await pool.query('SELECT * FROM users WHERE LOWER(email) = LOWER($1) AND "passwordHash" = $2', [email, pass]);
+        const result = await pool.query('SELECT * FROM users WHERE LOWER(email) = LOWER($1) AND passwordHash = $2', [email, pass]);
         if (result.rows.length > 0) {
             res.json(result.rows[0]);
         } else {
@@ -163,7 +163,7 @@ app.post('/api/users', async (req, res) => {
     const id = `u_${Date.now()}`;
     try {
         const result = await pool.query(
-            'INSERT INTO users (id, name, email, role, "passwordHash") VALUES ($1, $2, $3, $4, $5) RETURNING *',
+            'INSERT INTO users (id, name, email, role, passwordHash) VALUES ($1, $2, $3, $4, $5) RETURNING *',
             [id, name, email, role, passwordHash]
         );
         res.status(201).json(result.rows[0]);
@@ -177,7 +177,7 @@ app.put('/api/users/:id', async (req, res) => {
     const { name, email, role, passwordHash } = req.body;
     try {
         const result = await pool.query(
-            'UPDATE users SET name = $1, email = $2, role = $3, "passwordHash" = $4 WHERE id = $5 RETURNING *',
+            'UPDATE users SET name = $1, email = $2, role = $3, passwordHash = $4 WHERE id = $5 RETURNING *',
             [name, email, role, passwordHash, id]
         );
         res.json(result.rows[0]);
@@ -201,12 +201,12 @@ app.post('/api/users/:id/change-password', async (req, res) => {
     const { oldPassword, newPassword } = req.body;
     try {
         // First, verify the old password
-        const userResult = await pool.query('SELECT * FROM users WHERE id = $1 AND "passwordHash" = $2', [id, oldPassword]);
+        const userResult = await pool.query('SELECT * FROM users WHERE id = $1 AND passwordHash = $2', [id, oldPassword]);
         if (userResult.rows.length === 0) {
             return res.status(400).json({ error: "Invalid old password." });
         }
         // If old password is correct, update to the new one
-        const updateResult = await pool.query('UPDATE users SET "passwordHash" = $1 WHERE id = $2 RETURNING *', [newPassword, id]);
+        const updateResult = await pool.query('UPDATE users SET passwordHash = $1 WHERE id = $2 RETURNING *', [newPassword, id]);
         res.json(updateResult.rows[0]);
     } catch (err) {
         res.status(500).json({ error: err.message });
@@ -293,7 +293,7 @@ app.post('/api/restore', async (req, res) => {
         // Restore users
         for (const user of users) {
             const userQuery = `
-                INSERT INTO users (id, name, email, role, "passwordHash") 
+                INSERT INTO users (id, name, email, role, passwordHash) 
                 VALUES ($1, $2, $3, $4, $5)
             `;
             const userValues = [user.id, user.name, user.email, user.role, user.passwordHash];
