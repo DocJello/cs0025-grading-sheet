@@ -267,73 +267,79 @@ const UserManagement: React.FC = () => {
 
     return (
         <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-8">
-            <div className="flex justify-between items-center mb-6">
-                 <h2 className="text-3xl font-bold text-gray-800">User Management</h2>
-                 <button onClick={handleAdd} className="px-4 py-2 bg-green-700 text-white font-medium rounded-md hover:bg-green-800">
-                    Add New User
-                </button>
-            </div>
+            <h2 className="text-3xl font-bold text-gray-800 mb-6">User Management</h2>
             
-            <div className="bg-white shadow-md rounded-lg overflow-x-auto mb-8">
-                 <table className="min-w-full divide-y divide-gray-200">
-                    <thead className="bg-gray-50">
-                        <tr>
-                            <th scope="col" className="px-6 py-3 text-left text-sm font-medium text-gray-800 uppercase tracking-wider">Name</th>
-                            <th scope="col" className="px-6 py-3 text-left text-sm font-medium text-gray-800 uppercase tracking-wider">Email</th>
-                            <th scope="col" className="px-6 py-3 text-left text-sm font-medium text-gray-800 uppercase tracking-wider">Role</th>
-                            <th scope="col" className="px-6 py-3 text-right text-sm font-medium text-gray-800 uppercase tracking-wider">Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody className="bg-white divide-y divide-gray-200">
-                        {users.length > 0 ? (
-                            users.map(user => (
-                                <tr key={user.id}>
-                                    <td className="px-6 py-4 whitespace-nowrap text-base font-medium text-black">{user.name}</td>
-                                    <td className="px-6 py-4 whitespace-nowrap text-base text-black">{user.email}</td>
-                                    <td className="px-6 py-4 whitespace-nowrap text-base text-black">{user.role}</td>
-                                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium space-x-2">
-                                        <button onClick={() => handleEdit(user)} className="text-green-700 hover:text-green-900 p-1" aria-label={`Edit ${user.name}`}><EditIcon className="w-5 h-5"/></button>
-                                        <button onClick={() => handleDelete(user.id)} className="text-red-600 hover:text-red-900 p-1 disabled:opacity-50" disabled={user.id === currentUser?.id} aria-label={`Delete ${user.name}`}><TrashIcon className="w-5 h-5"/></button>
-                                    </td>
+            <div className="flex flex-col lg:flex-row gap-8 mb-8">
+                {/* Left Column: User Listings */}
+                <div className="flex-1 bg-white p-6 rounded-lg shadow-md">
+                    <h3 className="text-xl font-bold text-gray-800 mb-2">User Listings</h3>
+                    <p className="text-base text-gray-800 mb-4">Add, edit, or delete users manually from the list below.</p>
+                    <button onClick={handleAdd} className="w-full mb-4 px-4 py-2 bg-green-700 text-white rounded-md hover:bg-green-800">
+                        Add New User
+                    </button>
+                    <div className="overflow-x-auto">
+                        <table className="min-w-full divide-y divide-gray-200">
+                            <thead className="bg-gray-50">
+                                <tr>
+                                    <th scope="col" className="px-6 py-3 text-left text-sm font-medium text-gray-800 uppercase tracking-wider">Name</th>
+                                    <th scope="col" className="px-6 py-3 text-left text-sm font-medium text-gray-800 uppercase tracking-wider">Email</th>
+                                    <th scope="col" className="px-6 py-3 text-left text-sm font-medium text-gray-800 uppercase tracking-wider">Role</th>
+                                    <th scope="col" className="px-6 py-3 text-right text-sm font-medium text-gray-800 uppercase tracking-wider">Actions</th>
                                 </tr>
-                            ))
-                        ) : (
-                            <tr>
-                                <td colSpan={4} className="px-6 py-10 text-center text-gray-500">
-                                    No users found.
-                                </td>
-                            </tr>
-                        )}
-                    </tbody>
-                </table>
-            </div>
-
-            <div className="mb-8 bg-white p-6 rounded-lg shadow-md">
-                <h3 className="text-xl font-bold text-black mb-2">Bulk Add Users</h3>
-                <p className="text-base text-black mb-4">Add multiple users by uploading an XLSX or CSV file.</p>
-                <input
-                    type="file"
-                    id="user-file-upload"
-                    className="hidden"
-                    accept=".xlsx, .csv"
-                    onChange={handleFileChange}
-                />
-                <label htmlFor="user-file-upload" className="w-full cursor-pointer flex justify-center px-6 py-10 border-2 border-gray-300 border-dashed rounded-md hover:border-green-500">
-                    <div className="text-center">
-                        <svg className="mx-auto h-12 w-12 text-gray-400" stroke="currentColor" fill="none" viewBox="0 0 48 48" aria-hidden="true"><path d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"></path></svg>
-                        <p className="mt-1 text-sm text-gray-600">
-                            <span className="font-medium text-green-700">Click to upload</span> or drag and drop
-                        </p>
-                        <p className="text-xs text-gray-500">XLSX, CSV up to 10MB</p>
+                            </thead>
+                            <tbody className="bg-white divide-y divide-gray-200">
+                                {users.length > 0 ? (
+                                    users.map(user => (
+                                        <tr key={user.id}>
+                                            <td className="px-6 py-4 whitespace-nowrap text-base font-medium text-black">{user.name}</td>
+                                            <td className="px-6 py-4 whitespace-nowrap text-base text-black">{user.email}</td>
+                                            <td className="px-6 py-4 whitespace-nowrap text-base text-black">{user.role}</td>
+                                            <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium space-x-2">
+                                                <button onClick={() => handleEdit(user)} className="text-green-700 hover:text-green-900 p-1" aria-label={`Edit ${user.name}`}><EditIcon className="w-5 h-5"/></button>
+                                                <button onClick={() => handleDelete(user.id)} className="text-red-600 hover:text-red-900 p-1 disabled:opacity-50" disabled={user.id === currentUser?.id} aria-label={`Delete ${user.name}`}><TrashIcon className="w-5 h-5"/></button>
+                                            </td>
+                                        </tr>
+                                    ))
+                                ) : (
+                                    <tr>
+                                        <td colSpan={4} className="px-6 py-10 text-center text-gray-500">
+                                            No users found.
+                                        </td>
+                                    </tr>
+                                )}
+                            </tbody>
+                        </table>
                     </div>
-                </label>
-                <div className="mt-4 text-sm text-gray-800 bg-gray-50 p-3 rounded-md">
-                    <p className="font-bold text-black mb-1">Spreadsheet Requirements:</p>
-                    <ul className="list-disc list-inside space-y-1">
-                        <li>Must have a header row with columns named <span className="font-mono bg-gray-200 px-1 rounded">Name</span>, <span className="font-mono bg-gray-200 px-1 rounded">Email</span>, and <span className="font-mono bg-gray-200 px-1 rounded">Role</span>.</li>
-                        <li>New users will be assigned a password of '123'.</li>
-                        <li>Valid roles are: 'Admin', 'Course Adviser', 'Panel'. Invalid roles will default to 'Panel'.</li>
-                    </ul>
+                </div>
+
+                {/* Right Column: Bulk Add Users */}
+                <div className="flex-1 bg-white p-6 rounded-lg shadow-md">
+                    <h3 className="text-xl font-bold text-black mb-2">Bulk Add Users</h3>
+                    <p className="text-base text-black mb-4">Add multiple users by uploading an XLSX or CSV file.</p>
+                    <input
+                        type="file"
+                        id="user-file-upload"
+                        className="hidden"
+                        accept=".xlsx, .csv"
+                        onChange={handleFileChange}
+                    />
+                    <label htmlFor="user-file-upload" className="w-full cursor-pointer flex justify-center px-6 py-10 border-2 border-gray-300 border-dashed rounded-md hover:border-green-500">
+                        <div className="text-center">
+                            <svg className="mx-auto h-12 w-12 text-gray-400" stroke="currentColor" fill="none" viewBox="0 0 48 48" aria-hidden="true"><path d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"></path></svg>
+                            <p className="mt-1 text-sm text-gray-600">
+                                <span className="font-medium text-green-700">Click to upload</span> or drag and drop
+                            </p>
+                            <p className="text-xs text-gray-500">XLSX, CSV up to 10MB</p>
+                        </div>
+                    </label>
+                    <div className="mt-4 text-sm text-gray-800 bg-gray-50 p-3 rounded-md">
+                        <p className="font-bold text-black mb-1">Spreadsheet Requirements:</p>
+                        <ul className="list-disc list-inside space-y-1">
+                            <li>Must have a header row with columns named <span className="font-mono bg-gray-200 px-1 rounded">Name</span>, <span className="font-mono bg-gray-200 px-1 rounded">Email</span>, and <span className="font-mono bg-gray-200 px-1 rounded">Role</span>.</li>
+                            <li>New users will be assigned a password of '123'.</li>
+                            <li>Valid roles are: 'Admin', 'Course Adviser', 'Panel'. Invalid roles will default to 'Panel'.</li>
+                        </ul>
+                    </div>
                 </div>
             </div>
 
