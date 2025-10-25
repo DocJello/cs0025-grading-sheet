@@ -1,32 +1,9 @@
-// backend/server.js
-
 const express = require('express');
 const cors = require('cors');
 const { Pool } = require('pg');
-const crypto = require('crypto'); // For password hashing and UUIDs
 
 const app = express();
 const port = process.env.PORT || 3001;
-
-// --- CORS Configuration ---
-const frontendUrl = process.env.FRONTEND_URL;
-
-if (!frontendUrl) {
-    console.error("FATAL ERROR: The FRONTEND_URL environment variable is not set.");
-    console.error("The backend server will not start without knowing the frontend's origin for CORS security.");
-    console.error("Please set this variable in your Render.com service configuration.");
-    process.exit(1);
-}
-
-console.log(`CORS is configured to allow requests from origin: ${frontendUrl}`);
-
-const corsOptions = {
-  origin: frontendUrl,
-  optionsSuccessStatus: 200,
-};
-app.use(cors(corsOptions));
-app.use(express.json());
-
 
 // --- Database Connection ---
 const pool = new Pool({
@@ -36,119 +13,141 @@ const pool = new Pool({
   }
 });
 
-const hashPassword = (password) => {
-    if (!password) return null;
-    return crypto.createHash('sha256').update(password).digest('hex');
+// --- CORS Configuration ---
+// This allows your Vercel frontend to communicate with this backend.
+const corsOptions = {
+    origin: (origin, callback) => {
+        // Regex to match all possible Vercel deployment URLs for this project
+        // e.g. https://cs0025-grading-sheet.vercel.app
+        // e.g. https://cs0025-grading-sheet-git-main-....vercel.app
+        const vercelRegex = /^https:\/\/cs0025-grading-sheet.*\.vercel\.app$/;
+
+        // Allow requests with no origin (like server-to-server or REST tools)
+        if (!origin) {
+            return callback(null, true);
+        }
+
+        // Allow the specific frontend URL from environment variables, if set.
+        if (process.env.FRONTEND_URL && origin === process.env.FRONTEND_URL) {
+            return callback(null, true);
+        }
+        
+        // Allow if the origin matches the Vercel deployment URL pattern.
+        if (vercelRegex.test(origin)) {
+            return callback(null, true);
+        }
+        
+        console.error(`CORS Error: Request from origin '${origin}' blocked.`);
+        return callback(new Error('Not allowed by CORS'));
+    },
+    methods: ['GET', 'POST', 'PUT', 'DELETE'],
+    allowedHeaders: ['Content-Type']
 };
 
-// --- Database Initialization ---
-async function initializeDatabase() {
-  const client = await pool.connect();
-  try {
-    await client.query('BEGIN');
+app.use(cors(corsOptions));
+app.use(express.json({ limit: '10mb' })); // Increase payload limit for backups
 
-    await client.query(`
-      CREATE TABLE IF NOT EXISTS users (
-        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-        name VARCHAR(255) NOT NULL,
-        email VARCHAR(255) UNIQUE NOT NULL,
-        role VARCHAR(50) NOT NULL,
-        password_hash VARCHAR(255) NOT NULL
-      );
-    `);
 
-    await client.query(`
-      CREATE TABLE IF NOT EXISTS grade_sheets (
-        id TEXT PRIMARY KEY,
-        group_name VARCHAR(255) UNIQUE NOT NULL,
-        proponents JSONB,
-        proposed_titles JSONB,
-        selected_title TEXT,
-        program VARCHAR(50),
-        date TEXT,
-        venue TEXT,
-        panel1_id UUID REFERENCES users(id) ON DELETE SET NULL,
-        panel2_id UUID REFERENCES users(id) ON DELETE SET NULL,
-        panel1_grades JSONB,
-        panel2_grades JSONB,
-        status VARCHAR(50)
-      );
-    `);
+// --- Automatic Database Initialization ---
+const initializeDatabase = async () => {
+    const client = await pool.connect();
+    try {
+        // Create users table if it doesn't exist
+        await client.query(`
+            CREATE TABLE IF NOT EXISTS users (
+                id VARCHAR(50) PRIMARY KEY,
+                name VARCHAR(100) NOT NULL,
+                email VARCHAR(100) UNIQUE NOT NULL,
+                role VARCHAR(50) NOT NULL,
+                "passwordHash" VARCHAR(255) NOT NULL
+            );
+        `);
 
-    const res = await client.query('SELECT COUNT(*) FROM users');
-    if (res.rows[0].count === '0') {
-      const defaultUsers = [
-        { name: 'Admin User', email: 'admin@example.com', role: 'Admin', pass: '123' },
-        { name: 'Course Adviser', email: 'adviser@example.com', role: 'Course Adviser', pass: '123' },
-        { name: 'Panel One', email: 'panel1@example.com', role: 'Panel', pass: '123' },
-        { name: 'Panel Two', email: 'panel2@example.com', role: 'Panel', pass: '123' },
-      ];
-      for (const user of defaultUsers) {
-        await client.query(
-          'INSERT INTO users (name, email, role, password_hash) VALUES ($1, $2, $3, $4)',
-          [user.name, user.email.toLowerCase(), user.role, hashPassword(user.pass)]
-        );
-      }
-      console.log('Default users seeded.');
+        // Create grade_sheets table if it doesn't exist
+        await client.query(`
+            CREATE TABLE IF NOT EXISTS grade_sheets (
+                id VARCHAR(50) PRIMARY KEY,
+                "groupName" VARCHAR(100) NOT NULL,
+                proponents JSONB,
+                "proposedTitles" JSONB,
+                "selectedTitle" VARCHAR(255),
+                program VARCHAR(50),
+                date VARCHAR(50),
+                venue VARCHAR(100),
+                "panel1Id" VARCHAR(50),
+                "panel2Id" VARCHAR(50),
+                "panel1Grades" JSONB,
+                "panel2Grades" JSONB,
+                status VARCHAR(50) NOT NULL
+            );
+        `);
+
+        console.log('Database tables verified/created successfully.');
+
+        // Check if the users table is empty
+        const res = await client.query('SELECT COUNT(*) FROM users');
+        if (res.rows[0].count === '0') {
+            console.log('Users table is empty. Seeding initial data...');
+            // Insert default users
+            await client.query(`
+                INSERT INTO users (id, name, email, role, "passwordHash") VALUES
+                ('u_admin_01', 'Admin User', 'admin@example.com', 'Admin', '123'),
+                ('u_ca_01', 'Course Adviser', 'ca@example.com', 'Course Adviser', '123'),
+                ('u_p_01', 'Panel User 1', 'panel1@example.com', 'Panel', '123'),
+                ('u_p_02', 'Panel User 2', 'panel2@example.com', 'Panel', '123'),
+                ('u_p_03', 'Panel User 3', 'panel3@example.com', 'Panel', '123');
+            `);
+            console.log('Default users seeded successfully.');
+        } else {
+            console.log('Users table already contains data. Skipping seed.');
+        }
+    } catch (err) {
+        console.error('Error during database initialization:', err.stack);
+        throw err; // Throw error to prevent server from starting in a bad state
+    } finally {
+        client.release();
     }
-
-    await client.query('COMMIT');
-    console.log('Database initialized successfully.');
-  } catch (e) {
-    await client.query('ROLLBACK');
-    console.error('Error initializing database:', e);
-    throw e;
-  } finally {
-    client.release();
-  }
-}
+};
 
 // --- API Endpoints ---
 
 // Login
 app.post('/api/login', async (req, res) => {
-  const { email, pass } = req.body;
-  if (!email || !pass) {
-    return res.status(400).json({ error: 'Email and password are required' });
-  }
-  try {
-    const result = await pool.query('SELECT * FROM users WHERE email = $1 AND password_hash = $2', [email.toLowerCase(), hashPassword(pass)]);
-    if (result.rows.length > 0) {
-      const user = result.rows[0];
-      const { password_hash, ...userResponse } = user;
-      res.json({ ...userResponse, passwordHash: password_hash });
-    } else {
-      res.status(401).json({ error: 'Invalid email or password' });
+    const { email, pass } = req.body;
+    try {
+        // FIX: Use LOWER() on both email input and DB column for case-insensitive login
+        const result = await pool.query('SELECT * FROM users WHERE LOWER(email) = LOWER($1) AND "passwordHash" = $2', [email, pass]);
+        if (result.rows.length > 0) {
+            res.json(result.rows[0]);
+        } else {
+            res.status(401).json({ error: 'Invalid credentials' });
+        }
+    } catch (err) {
+        res.status(500).json({ error: err.message });
     }
-  } catch (error) {
-    res.status(500).json({ error: 'Internal server error' });
-  }
 });
 
-
-// User Endpoints
+// Users CRUD
 app.get('/api/users', async (req, res) => {
     try {
-        const result = await pool.query('SELECT id, name, email, role, password_hash AS "passwordHash" FROM users ORDER BY name');
+        const result = await pool.query('SELECT * FROM users ORDER BY name');
         res.json(result.rows);
-    } catch (error) {
-        res.status(500).json({ error: 'Failed to fetch users' });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
     }
 });
 
 app.post('/api/users', async (req, res) => {
     const { name, email, role, passwordHash } = req.body;
+    const id = `u_${Date.now()}`;
     try {
         const result = await pool.query(
-            'INSERT INTO users (name, email, role, password_hash) VALUES ($1, $2, $3, $4) RETURNING id, name, email, role, password_hash AS "passwordHash"',
-            [name, email.toLowerCase(), role, hashPassword(passwordHash)]
+            'INSERT INTO users (id, name, email, role, "passwordHash") VALUES ($1, $2, $3, $4, $5) RETURNING *',
+            [id, name, email, role, passwordHash]
         );
         res.status(201).json(result.rows[0]);
-    } catch (error) {
-        if (error.code === '23505') { // Unique violation
-            return res.status(409).json({ error: 'A user with this email already exists.' });
-        }
-        res.status(500).json({ error: 'Failed to add user' });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
     }
 });
 
@@ -157,15 +156,12 @@ app.put('/api/users/:id', async (req, res) => {
     const { name, email, role, passwordHash } = req.body;
     try {
         const result = await pool.query(
-            'UPDATE users SET name = $1, email = $2, role = $3, password_hash = $4 WHERE id = $5 RETURNING id, name, email, role, password_hash AS "passwordHash"',
-            [name, email.toLowerCase(), role, passwordHash.length < 64 ? hashPassword(passwordHash) : passwordHash, id]
+            'UPDATE users SET name = $1, email = $2, role = $3, "passwordHash" = $4 WHERE id = $5 RETURNING *',
+            [name, email, role, passwordHash, id]
         );
         res.json(result.rows[0]);
-    } catch (error) {
-        if (error.code === '23505') {
-            return res.status(409).json({ error: 'A user with this email already exists.' });
-        }
-        res.status(500).json({ error: 'Failed to update user' });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
     }
 });
 
@@ -174,8 +170,8 @@ app.delete('/api/users/:id', async (req, res) => {
     try {
         await pool.query('DELETE FROM users WHERE id = $1', [id]);
         res.status(204).send();
-    } catch (error) {
-        res.status(500).json({ error: 'Failed to delete user' });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
     }
 });
 
@@ -183,95 +179,56 @@ app.post('/api/users/:id/change-password', async (req, res) => {
     const { id } = req.params;
     const { oldPassword, newPassword } = req.body;
     try {
-        const userResult = await pool.query('SELECT * FROM users WHERE id = $1', [id]);
+        // First, verify the old password
+        const userResult = await pool.query('SELECT * FROM users WHERE id = $1 AND "passwordHash" = $2', [id, oldPassword]);
         if (userResult.rows.length === 0) {
-            return res.status(404).json({ error: 'User not found' });
+            return res.status(400).json({ error: "Invalid old password." });
         }
-        if (userResult.rows[0].password_hash !== hashPassword(oldPassword)) {
-            return res.status(400).json({ error: 'Incorrect old password' });
-        }
-        const result = await pool.query(
-            'UPDATE users SET password_hash = $1 WHERE id = $2 RETURNING id, name, email, role, password_hash AS "passwordHash"',
-            [hashPassword(newPassword), id]
-        );
-        res.json(result.rows[0]);
-    } catch (error) {
-        res.status(500).json({ error: 'Internal server error' });
+        // If old password is correct, update to the new one
+        const updateResult = await pool.query('UPDATE users SET "passwordHash" = $1 WHERE id = $2 RETURNING *', [newPassword, id]);
+        res.json(updateResult.rows[0]);
+    } catch (err) {
+        res.status(500).json({ error: err.message });
     }
 });
 
 
-// Grade Sheet Endpoints
+// GradeSheets CRUD
 app.get('/api/gradesheets', async (req, res) => {
     try {
-        const result = await pool.query('SELECT id, group_name AS "groupName", proponents, proposed_titles AS "proposedTitles", selected_title AS "selectedTitle", program, date, venue, panel1_id AS "panel1Id", panel2_id AS "panel2Id", panel1_grades AS "panel1Grades", panel2_grades AS "panel2Grades", status FROM grade_sheets ORDER BY "groupName"');
-        res.json(result.rows.map(row => ({
-            ...row,
-            panel1Id: row.panel1Id || '',
-            panel2Id: row.panel2Id || '',
-        })));
-    } catch (error) {
-        res.status(500).json({ error: 'Failed to fetch grade sheets' });
+        const result = await pool.query('SELECT * FROM grade_sheets ORDER BY "groupName"');
+        res.json(result.rows);
+    } catch (err) {
+        res.status(500).json({ error: err.message });
     }
 });
 
 app.post('/api/gradesheets', async (req, res) => {
-    const { groupName, proponents, selectedTitle, program, date, venue, panel1Id, panel2Id } = req.body;
-    const newId = `${Date.now()}-${crypto.randomBytes(4).toString('hex')}`;
+    const { groupName, proponents, proposedTitles, selectedTitle, program, date, venue, panel1Id, panel2Id, panel1Grades, panel2Grades, status } = req.body;
+    // FIX: Append a random string to the ID to ensure uniqueness during fast, consecutive requests.
+    const id = `gs_${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
     try {
         const result = await pool.query(
-            'INSERT INTO grade_sheets (id, group_name, proponents, selected_title, program, date, venue, panel1_id, panel2_id, status) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) RETURNING *',
-            [newId, groupName, JSON.stringify(proponents), selectedTitle, program, date, venue, panel1Id || null, panel2Id || null, 'Not Started']
+            'INSERT INTO grade_sheets (id, "groupName", proponents, "proposedTitles", "selectedTitle", program, date, venue, "panel1Id", "panel2Id", "panel1Grades", "panel2Grades", status) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13) RETURNING *',
+            [id, groupName, JSON.stringify(proponents || []), JSON.stringify(proposedTitles || []), selectedTitle, program, date, venue, panel1Id, panel2Id, JSON.stringify(panel1Grades || null), JSON.stringify(panel2Grades || null), status]
         );
-        const newSheet = result.rows[0];
-        res.status(201).json({
-            id: newSheet.id,
-            groupName: newSheet.group_name,
-            proponents: newSheet.proponents,
-            proposedTitles: newSheet.proposed_titles,
-            selectedTitle: newSheet.selected_title,
-            program: newSheet.program,
-            date: newSheet.date,
-            venue: newSheet.venue,
-            panel1Id: newSheet.panel1_id || '',
-            panel2Id: newSheet.panel2_id || '',
-            panel1Grades: newSheet.panel1_grades,
-            panel2Grades: newSheet.panel2_grades,
-            status: newSheet.status,
-        });
-    } catch (error) {
-        console.error('Error adding grade sheet:', error);
-        res.status(500).json({ error: error.message });
+        res.status(201).json(result.rows[0]);
+    } catch (err) {
+        res.status(500).json({ error: err.message });
     }
 });
 
 app.put('/api/gradesheets/:id', async (req, res) => {
     const { id } = req.params;
-    const { groupName, proponents, selectedTitle, program, date, venue, panel1Id, panel2Id, panel1Grades, panel2Grades, status } = req.body;
+    const { groupName, proponents, proposedTitles, selectedTitle, program, date, venue, panel1Id, panel2Id, panel1Grades, panel2Grades, status } = req.body;
     try {
         const result = await pool.query(
-            'UPDATE grade_sheets SET group_name = $1, proponents = $2, selected_title = $3, program = $4, date = $5, venue = $6, panel1_id = $7, panel2_id = $8, panel1_grades = $9, panel2_grades = $10, status = $11 WHERE id = $12 RETURNING *',
-            [groupName, JSON.stringify(proponents), selectedTitle, program, date, venue, panel1Id || null, panel2Id || null, JSON.stringify(panel1Grades), JSON.stringify(panel2Grades), status, id]
+            'UPDATE grade_sheets SET "groupName" = $1, proponents = $2, "proposedTitles" = $3, "selectedTitle" = $4, program = $5, date = $6, venue = $7, "panel1Id" = $8, "panel2Id" = $9, "panel1Grades" = $10, "panel2Grades" = $11, status = $12 WHERE id = $13 RETURNING *',
+            [groupName, JSON.stringify(proponents || []), JSON.stringify(proposedTitles || []), selectedTitle, program, date, venue, panel1Id, panel2Id, JSON.stringify(panel1Grades || null), JSON.stringify(panel2Grades || null), status, id]
         );
-         const updatedSheet = result.rows[0];
-         res.json({
-            id: updatedSheet.id,
-            groupName: updatedSheet.group_name,
-            proponents: updatedSheet.proponents,
-            proposedTitles: updatedSheet.proposed_titles,
-            selectedTitle: updatedSheet.selected_title,
-            program: updatedSheet.program,
-            date: updatedSheet.date,
-            venue: updatedSheet.venue,
-            panel1Id: updatedSheet.panel1_id || '',
-            panel2Id: updatedSheet.panel2_id || '',
-            panel1Grades: updatedSheet.panel1_grades,
-            panel2Grades: updatedSheet.panel2_grades,
-            status: updatedSheet.status,
-        });
-    } catch (error) {
-        console.error('Error updating grade sheet:', error);
-        res.status(500).json({ error: error.message });
+        res.json(result.rows[0]);
+    } catch (err) {
+        res.status(500).json({ error: err.message });
     }
 });
 
@@ -280,66 +237,95 @@ app.delete('/api/gradesheets/:id', async (req, res) => {
     try {
         await pool.query('DELETE FROM grade_sheets WHERE id = $1', [id]);
         res.status(204).send();
-    } catch (error) {
-        res.status(500).json({ error: 'Failed to delete grade sheet' });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
     }
 });
 
 app.delete('/api/gradesheets/all', async (req, res) => {
     try {
-        await pool.query('DELETE FROM grade_sheets');
+        // TRUNCATE is faster and resets any auto-incrementing counters if they existed.
+        await pool.query('TRUNCATE TABLE grade_sheets RESTART IDENTITY');
         res.status(204).send();
-    } catch (error) {
-        console.error("Error deleting all grade sheets:", error);
-        res.status(500).json({ error: 'Failed to delete all grade sheets' });
+    } catch (err) {
+        console.error('Error truncating grade_sheets table:', err.stack);
+        res.status(500).json({ error: `Failed to delete all grade sheets: ${err.message}` });
     }
 });
+
 
 // Restore Endpoint
 app.post('/api/restore', async (req, res) => {
     const { users, gradeSheets } = req.body;
+
+    if (!Array.isArray(users) || !Array.isArray(gradeSheets)) {
+        return res.status(400).json({ error: 'Invalid backup data format.' });
+    }
+
     const client = await pool.connect();
     try {
         await client.query('BEGIN');
-        
-        await client.query('DELETE FROM grade_sheets');
-        await client.query('DELETE FROM users');
 
+        // Clear existing data. TRUNCATE is faster and resets identity columns.
+        await client.query('TRUNCATE TABLE grade_sheets, users RESTART IDENTITY');
+
+        // Restore users
         for (const user of users) {
-             await client.query(
-                'INSERT INTO users (id, name, email, role, password_hash) VALUES ($1, $2, $3, $4, $5)',
-                [user.id, user.name, user.email, user.role, user.passwordHash]
-            );
+            const userQuery = `
+                INSERT INTO users (id, name, email, role, "passwordHash") 
+                VALUES ($1, $2, $3, $4, $5)
+            `;
+            const userValues = [user.id, user.name, user.email, user.role, user.passwordHash];
+            await client.query(userQuery, userValues);
         }
 
+        // Restore grade sheets
         for (const sheet of gradeSheets) {
-            await client.query(
-                'INSERT INTO grade_sheets (id, group_name, proponents, selected_title, program, date, venue, panel1_id, panel2_id, panel1_grades, panel2_grades, status) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)',
-                [sheet.id, sheet.groupName, JSON.stringify(sheet.proponents), sheet.selectedTitle, sheet.program, sheet.date, sheet.venue, sheet.panel1Id || null, sheet.panel2Id || null, JSON.stringify(sheet.panel1Grades), JSON.stringify(sheet.panel2Grades), sheet.status]
-            );
+            const sheetQuery = `
+                INSERT INTO grade_sheets (id, "groupName", proponents, "proposedTitles", "selectedTitle", program, date, venue, "panel1Id", "panel2Id", "panel1Grades", "panel2Grades", status) 
+                VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
+            `;
+            const sheetValues = [
+                sheet.id,
+                sheet.groupName,
+                JSON.stringify(sheet.proponents || []),
+                JSON.stringify(sheet.proposedTitles || []),
+                sheet.selectedTitle || null,
+                sheet.program || null,
+                sheet.date || null,
+                sheet.venue || null,
+                sheet.panel1Id || null,
+                sheet.panel2Id || null,
+                JSON.stringify(sheet.panel1Grades || null),
+                JSON.stringify(sheet.panel2Grades || null),
+                sheet.status
+            ];
+            await client.query(sheetQuery, sheetValues);
         }
 
         await client.query('COMMIT');
-        res.status(200).json({ message: 'Restore successful' });
-    } catch (error) {
+        res.status(200).json({ message: 'Database restored successfully.' });
+    } catch (err) {
         await client.query('ROLLBACK');
-        console.error('Restore error:', error);
-        res.status(500).json({ error: 'Restore failed' });
+        console.error('Error during database restore:', err.stack);
+        res.status(500).json({ error: `Failed to restore database: ${err.message}` });
     } finally {
         client.release();
     }
 });
 
-// --- Server Startup ---
+// --- Start Server ---
 const startServer = async () => {
-  try {
-    await initializeDatabase();
-    app.listen(port, () => {
-      console.log(`Server listening on port ${port}`);
-    });
-  } catch (error) {
-    console.error('Failed to start server:', error);
-  }
+    try {
+        // Wait for the database to be initialized before starting the server
+        await initializeDatabase();
+        app.listen(port, () => {
+            console.log(`Server listening on port ${port}`);
+        });
+    } catch (error) {
+        console.error("FATAL: Failed to start server due to database initialization error.");
+        process.exit(1);
+    }
 };
 
 startServer();
