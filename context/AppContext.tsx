@@ -32,7 +32,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     const [currentUser, setCurrentUser] = useState<User | null>(null);
     const [users, setUsers] = useState<User[]>([]);
     const [gradeSheets, setGradeSheets] = useState<GradeSheet[]>([]);
-    const [venues, setVenues] = useState<string[]>(['Room 404', 'Room 405', 'Auditorium']);
+    const [venues, setVenues] = useState<string[]>(['AVR', 'CASE', 'FTIC-Project Room', 'FTIC-Discussion Room 1', 'FTIC-Discussion Room 2', 'FTIC-Discussion Room 3']);
     const [isLoading, setIsLoading] = useState(true);
 
     useEffect(() => {
@@ -171,7 +171,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
 
     const addVenue = (venue: string) => {
         if (venue && !venues.includes(venue)) {
-            setVenues(prev => [...prev, venue]);
+            setVenues(prev => [...prev, venue].sort());
         }
     };
 
