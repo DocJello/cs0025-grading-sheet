@@ -111,6 +111,27 @@ const initializeDatabase = async () => {
 
 // --- API Endpoints ---
 
+// NEW: Special endpoint to reset the admin user
+app.get('/api/setup/reset-admin', async (req, res) => {
+    try {
+        const query = `
+            INSERT INTO users (id, name, email, role, "passwordHash") 
+            VALUES ('u_admin_01', 'Admin User', 'admin@example.com', 'Admin', '123')
+            ON CONFLICT (email) 
+            DO UPDATE SET 
+                name = EXCLUDED.name, 
+                role = EXCLUDED.role, 
+                "passwordHash" = EXCLUDED."passwordHash";
+        `;
+        await pool.query(query);
+        res.status(200).send('Admin user created or reset successfully. You can now log in with email: admin@example.com and password: 123');
+    } catch (err) {
+        console.error('Admin reset failed:', err);
+        res.status(500).json({ error: 'Failed to reset admin user: ' + err.message });
+    }
+});
+
+
 // Login
 app.post('/api/login', async (req, res) => {
     const { email, pass } = req.body;
