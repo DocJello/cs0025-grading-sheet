@@ -84,22 +84,38 @@ const initializeDatabase = async () => {
 
         console.log('Database tables verified/created successfully.');
 
-        // Check if the users table is empty
-        const res = await client.query('SELECT COUNT(*) FROM users');
+        // --- Upsert Admin User ---
+        // This ensures the admin account always exists and has the default password.
+        // It's safer than seeding only when the table is empty.
+        const adminUpsertQuery = `
+            INSERT INTO users (id, name, email, role, passwordHash) 
+            VALUES ('u_admin_01', 'Admin User', 'admin@example.com', 'Admin', '123')
+            ON CONFLICT (email) 
+            DO UPDATE SET 
+                name = EXCLUDED.name, 
+                role = EXCLUDED.role, 
+                passwordHash = EXCLUDED.passwordHash,
+                id = 'u_admin_01';
+        `;
+        await client.query(adminUpsertQuery);
+        console.log('Admin user account verified/created successfully.');
+
+        // Check if the users table is otherwise empty to seed other default users
+        const res = await client.query("SELECT COUNT(*) FROM users WHERE email != 'admin@example.com'");
         if (res.rows[0].count === '0') {
-            console.log('Users table is empty. Seeding initial data...');
-            // Insert default users
+            console.log('No other users found. Seeding initial panel/adviser data...');
+            // Insert other default users
             await client.query(`
                 INSERT INTO users (id, name, email, role, passwordHash) VALUES
-                ('u_admin_01', 'Admin User', 'admin@example.com', 'Admin', '123'),
                 ('u_ca_01', 'Course Adviser', 'ca@example.com', 'Course Adviser', '123'),
                 ('u_p_01', 'Panel User 1', 'panel1@example.com', 'Panel', '123'),
                 ('u_p_02', 'Panel User 2', 'panel2@example.com', 'Panel', '123'),
-                ('u_p_03', 'Panel User 3', 'panel3@example.com', 'Panel', '123');
+                ('u_p_03', 'Panel User 3', 'panel3@example.com', 'Panel', '123')
+                ON CONFLICT (email) DO NOTHING;
             `);
-            console.log('Default users seeded successfully.');
+            console.log('Default panel/adviser users seeded successfully.');
         } else {
-            console.log('Users table already contains data. Skipping seed.');
+            console.log('Other users already exist. Skipping non-admin seed.');
         }
     } catch (err) {
         console.error('Error during database initialization:', err.stack);
@@ -111,26 +127,8 @@ const initializeDatabase = async () => {
 
 // --- API Endpoints ---
 
-// NEW: Special endpoint to reset the admin user
-app.get('/api/setup/reset-admin', async (req, res) => {
-    try {
-        const query = `
-            INSERT INTO users (id, name, email, role, passwordHash) 
-            VALUES ('u_admin_01', 'Admin User', 'admin@example.com', 'Admin', '123')
-            ON CONFLICT (email) 
-            DO UPDATE SET 
-                name = EXCLUDED.name, 
-                role = EXCLUDED.role, 
-                passwordHash = EXCLUDED.passwordHash;
-        `;
-        await pool.query(query);
-        res.status(200).send('Admin user created or reset successfully. You can now log in with email: admin@example.com and password: 123');
-    } catch (err) {
-        console.error('Admin reset failed:', err);
-        res.status(500).json({ error: 'Failed to reset admin user: ' + err.message });
-    }
-});
-
+// The /api/setup/reset-admin endpoint is removed. The logic is now handled automatically
+// on server startup in initializeDatabase for better security and reliability.
 
 // Login
 app.post('/api/login', async (req, res) => {
