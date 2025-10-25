@@ -42,10 +42,10 @@ const UserModal: React.FC<UserModalProps> = ({ user, onClose, onSave }) => {
         let finalData: Omit<User, 'id'> | User;
 
         if (isEditing) {
-            const passwordHash = password ? password : user.passwordHash;
-            finalData = { ...user, ...baseData, passwordHash };
+            const password_hash = password ? password : user.password_hash;
+            finalData = { ...user, ...baseData, password_hash };
         } else {
-            finalData = { ...baseData, passwordHash: password };
+            finalData = { ...baseData, password_hash: password };
         }
         
         onSave(finalData);
@@ -153,7 +153,7 @@ const UserManagement: React.FC = () => {
                         name: String(name),
                         email: String(email),
                         role: role,
-                        passwordHash: '123'
+                        password_hash: '123'
                     };
                     addUser(newUser);
                     addedCount++;
