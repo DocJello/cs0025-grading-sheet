@@ -1,5 +1,5 @@
 // FIX: Full content for pages/GroupManagement.tsx
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAppContext } from '../context/AppContext';
 import { GradeSheet, Page, Student } from '../types';
 import { EditIcon, TrashIcon, InfoIcon } from '../components/Icons';
@@ -10,25 +10,56 @@ interface GroupModalProps {
     sheet: Omit<GradeSheet, 'id' | 'status'> | GradeSheet | null;
     onClose: () => void;
     onSave: (data: Omit<GradeSheet, 'id' | 'status'> | GradeSheet) => void;
+    venues: string[];
+    addVenue: (venue: string) => void;
 }
 
-const GroupModal: React.FC<GroupModalProps> = ({ sheet, onClose, onSave }) => {
+const GroupModal: React.FC<GroupModalProps> = ({ sheet, onClose, onSave, venues, addVenue }) => {
     const [groupName, setGroupName] = useState(sheet?.groupName || '');
-    const [proponents, setProponents] = useState(sheet?.proponents.map(p => p.name).join(', ') || '');
+    const [proponents, setProponents] = useState(sheet?.proponents.map(p => p.name).join('; ') || '');
     const [selectedTitle, setSelectedTitle] = useState(sheet?.selectedTitle || '');
     const [program, setProgram] = useState(sheet?.program || '');
     const [date, setDate] = useState(sheet?.date || '');
     const [venue, setVenue] = useState(sheet?.venue || '');
+    const [newVenue, setNewVenue] = useState('');
+    const [showNewVenueInput, setShowNewVenueInput] = useState(false);
+
+    useEffect(() => {
+        // If editing an existing sheet and its venue isn't in the standard list,
+        // set the dropdown to 'Others' and populate the text input.
+        if (sheet?.venue && !venues.includes(sheet.venue)) {
+            setVenue('Others');
+            setShowNewVenueInput(true);
+            setNewVenue(sheet.venue);
+        }
+    }, [sheet, venues]);
+
+
+    const handleVenueChange = (selectedVenue: string) => {
+        setVenue(selectedVenue);
+        if (selectedVenue === 'Others') {
+            setShowNewVenueInput(true);
+        } else {
+            setShowNewVenueInput(false);
+            setNewVenue(''); // Clear custom venue when a standard one is selected
+        }
+    };
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
         
         const proponentList: Student[] = proponents
-            .split(',')
+            .split(';')
             .map(name => name.trim())
             .filter(name => name)
             .map((name, index) => ({ id: sheet?.proponents[index]?.id || `s_new_${index}_${Date.now()}-${Math.random().toString(36).substr(2, 9)}`, name }));
             
+        let finalVenue = venue;
+        if (venue === 'Others' && newVenue.trim()) {
+            finalVenue = newVenue.trim();
+            addVenue(finalVenue); // Add to the list for future use
+        }
+
         const baseData = {
             groupName,
             proponents: proponentList,
@@ -36,7 +67,7 @@ const GroupModal: React.FC<GroupModalProps> = ({ sheet, onClose, onSave }) => {
             selectedTitle,
             program: program as GradeSheet['program'],
             date,
-            venue,
+            venue: finalVenue,
             panel1Id: sheet?.panel1Id || '',
             panel2Id: sheet?.panel2Id || '',
         };
@@ -53,7 +84,7 @@ const GroupModal: React.FC<GroupModalProps> = ({ sheet, onClose, onSave }) => {
     return (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50">
             <div className="bg-white rounded-lg shadow-xl p-6 w-full max-w-lg">
-                <h2 className="text-2xl font-bold mb-4">{sheet ? 'Edit Group Details' : 'Add Group Manually'}</h2>
+                <h2 className="text-2xl font-bold mb-4">{sheet && 'id' in sheet ? 'Edit Group Details' : 'Add Group Manually'}</h2>
                 <form onSubmit={handleSubmit} className="space-y-4">
                     <div>
                         <label className="block text-sm font-medium text-gray-700">Group Name</label>
@@ -69,7 +100,7 @@ const GroupModal: React.FC<GroupModalProps> = ({ sheet, onClose, onSave }) => {
                         </select>
                     </div>
                     <div>
-                        <label className="block text-sm font-medium text-gray-700">Proponents (comma-separated, 3-4 members)</label>
+                        <label className="block text-sm font-medium text-gray-700">Proponents (semicolon-separated; 3-4 members)</label>
                         <input type="text" value={proponents} onChange={e => setProponents(e.target.value)} required className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-green-500 focus:border-green-500"/>
                     </div>
                     <div>
@@ -83,7 +114,21 @@ const GroupModal: React.FC<GroupModalProps> = ({ sheet, onClose, onSave }) => {
                         </div>
                         <div className="flex-1">
                             <label className="block text-sm font-medium text-gray-700">Venue</label>
-                            <input type="text" value={venue} onChange={e => setVenue(e.target.value)} className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-green-500 focus:border-green-500"/>
+                             <select value={venue} onChange={e => handleVenueChange(e.target.value)} className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-green-500 focus:border-green-500">
+                                <option value="" disabled>Select a venue</option>
+                                {venues.map(v => <option key={v} value={v}>{v}</option>)}
+                                <option value="Others">Others</option>
+                            </select>
+                            {showNewVenueInput && (
+                                <input 
+                                    type="text" 
+                                    placeholder="Enter new venue" 
+                                    value={newVenue} 
+                                    onChange={e => setNewVenue(e.target.value)} 
+                                    className="mt-2 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-green-500 focus:border-green-500"
+                                    required={venue === 'Others'}
+                                />
+                            )}
                         </div>
                     </div>
                     <div className="flex justify-end space-x-2 pt-4">
@@ -101,7 +146,7 @@ interface GroupManagementProps {
 }
 
 const GroupManagement: React.FC<GroupManagementProps> = ({ setPage }) => {
-    const { gradeSheets, addGradeSheet, updateGradeSheet, deleteGradeSheet, deleteAllGradeSheets } = useAppContext();
+    const { gradeSheets, addGradeSheet, updateGradeSheet, deleteGradeSheet, deleteAllGradeSheets, venues, addVenue } = useAppContext();
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingSheet, setEditingSheet] = useState<GradeSheet | null>(null);
     const [showDeleteAllModal, setShowDeleteAllModal] = useState(false);
@@ -327,7 +372,7 @@ const GroupManagement: React.FC<GroupManagementProps> = ({ setPage }) => {
                 </div>
             </div>
 
-            {isModalOpen && <GroupModal sheet={editingSheet} onClose={() => setIsModalOpen(false)} onSave={handleSave} />}
+            {isModalOpen && <GroupModal sheet={editingSheet} onClose={() => setIsModalOpen(false)} onSave={handleSave} venues={venues} addVenue={addVenue} />}
 
             {showDeleteAllModal && (
                 <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50">
