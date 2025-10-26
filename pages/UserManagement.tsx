@@ -92,10 +92,11 @@ const UserModal: React.FC<UserModalProps> = ({ user, onClose, onSave }) => {
 
 
 const UserManagement: React.FC = () => {
-    const { currentUser, users, addUser, updateUser, deleteUser } = useAppContext();
+    const { currentUser, users, addUser, updateUser, deleteUser, gradeSheets, restoreData } = useAppContext();
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingUser, setEditingUser] = useState<User | null>(null);
-    
+    const [restoreFile, setRestoreFile] = useState<File | null>(null);
+
     const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
         const file = event.target.files?.[0];
         if (!file) return;
@@ -201,6 +202,69 @@ const UserManagement: React.FC = () => {
         }
     };
 
+    const handleExport = (data: any, filename: string) => {
+        const jsonString = `data:text/json;charset=utf-8,${encodeURIComponent(
+            JSON.stringify(data, null, 2)
+        )}`;
+        const link = document.createElement("a");
+        link.href = jsonString;
+        link.download = filename;
+        link.click();
+    };
+
+    const handleFullBackup = () => {
+        const backupData = {
+            users,
+            gradeSheets,
+        };
+        handleExport(backupData, `grading-sheet-backup-${new Date().toISOString().split('T')[0]}.json`);
+    };
+
+    const handleRestoreFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+        const file = event.target.files?.[0] || null;
+        setRestoreFile(file);
+    };
+
+    const handleRestore = async () => {
+        if (!restoreFile) {
+            alert('Please select a backup file to restore.');
+            return;
+        }
+
+        const confirmation = window.prompt(
+            'WARNING: This will ERASE all current data (users, groups, grades) and replace it with the backup. This is irreversible.\n\nTo confirm, type "RESTORE" in the box below.'
+        );
+
+        if (confirmation !== 'RESTORE') {
+            alert('Restore operation cancelled.');
+            return;
+        }
+
+        const reader = new FileReader();
+        reader.onload = async (e) => {
+            try {
+                const text = e.target?.result as string;
+                const backupData = JSON.parse(text);
+
+                if (!backupData.users || !Array.isArray(backupData.users) || !backupData.gradeSheets || !Array.isArray(backupData.gradeSheets)) {
+                    throw new Error("Invalid backup file format. Missing 'users' or 'gradeSheets' arrays.");
+                }
+                
+                await restoreData(backupData);
+                alert('Data restored successfully! The application will now reload to apply the changes.');
+                window.location.reload();
+
+            } catch (err) {
+                console.error("Restore failed:", err);
+                alert(`Error processing backup file: ${err.message}`);
+            }
+        };
+        reader.onerror = () => {
+            alert('Failed to read the selected file.');
+        };
+        reader.readAsText(restoreFile);
+    };
+
     return (
         <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-8">
             <h2 className="text-3xl font-bold text-gray-800 mb-6">User Management</h2>
@@ -213,7 +277,7 @@ const UserManagement: React.FC = () => {
                     <button onClick={handleAdd} className="w-full mb-4 px-4 py-2 bg-green-700 text-white rounded-md hover:bg-green-800">
                         Add New User
                     </button>
-                    <div className="overflow-x-auto overflow-y-auto h-[28rem]">
+                    <div className="overflow-x-auto overflow-y-auto max-h-[28rem]">
                         <table className="min-w-full divide-y divide-gray-200">
                             <thead className="bg-gray-50 sticky top-0">
                                 <tr>
@@ -275,6 +339,29 @@ const UserManagement: React.FC = () => {
                             <li>New users will be assigned a password of '123'.</li>
                             <li>Valid roles are: 'Admin', 'Course Adviser', 'Panel'. Invalid roles will default to 'Panel'.</li>
                         </ul>
+                    </div>
+                </div>
+            </div>
+
+            <div className="border-2 border-red-500 rounded-lg p-6">
+                <h3 className="text-2xl font-bold text-red-700 mb-4">Danger Zone</h3>
+                
+                <div className="bg-red-50 border-l-4 border-red-500 p-4 rounded-md">
+                    <h4 className="text-lg font-bold text-red-800">Restore from Backup</h4>
+                    <p className="text-base text-red-900 mt-2 mb-4">
+                        <span className="font-bold">Warning:</span> Restoring from a backup will completely overwrite all existing users and grade sheets in the database. This action cannot be undone.
+                    </p>
+                    <div className="flex items-center space-x-4">
+                        <input
+                            type="file"
+                            id="restore-file-upload"
+                            className="block w-full text-sm text-gray-900 bg-gray-50 rounded-lg border border-gray-300 cursor-pointer focus:outline-none"
+                            accept=".json"
+                            onChange={handleRestoreFileChange}
+                        />
+                        <button onClick={handleRestore} disabled={!restoreFile} className="flex-shrink-0 px-4 py-2 bg-red-700 text-white font-medium rounded-md hover:bg-red-800 disabled:opacity-50 disabled:cursor-not-allowed">
+                            Restore Data
+                        </button>
                     </div>
                 </div>
             </div>
