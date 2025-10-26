@@ -52,14 +52,6 @@ app.use(express.json({ limit: '10mb' })); // Increase payload limit for backups
 const initializeDatabase = async () => {
     const client = await pool.connect();
     try {
-        // --- Force Schema Reset on Deploy ---
-        // This is a temporary measure to fix a persistent schema issue.
-        // It will delete all data on every server restart/deploy.
-        // This should be removed once the application is stable.
-        await client.query('DROP TABLE IF EXISTS grade_sheets;');
-        await client.query('DROP TABLE IF EXISTS users;');
-        console.log('Existing tables dropped to ensure a clean schema.');
-        
         // Create users table if it doesn't exist
         await client.query(`
             CREATE TABLE IF NOT EXISTS users (
