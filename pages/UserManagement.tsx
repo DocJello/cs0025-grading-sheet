@@ -290,7 +290,9 @@ const UserManagement: React.FC = () => {
                                     <th scope="col" className="px-6 py-3 text-left text-sm font-medium text-gray-800 uppercase tracking-wider">Name</th>
                                     <th scope="col" className="px-6 py-3 text-left text-sm font-medium text-gray-800 uppercase tracking-wider">Email</th>
                                     <th scope="col" className="px-6 py-3 text-left text-sm font-medium text-gray-800 uppercase tracking-wider">Role</th>
-                                    <th scope="col" className="px-6 py-3 text-right text-sm font-medium text-gray-800 uppercase tracking-wider">Actions</th>
+                                    {isSuperAdmin && (
+                                        <th scope="col" className="px-6 py-3 text-right text-sm font-medium text-gray-800 uppercase tracking-wider">Actions</th>
+                                    )}
                                 </tr>
                             </thead>
                             <tbody className="bg-white divide-y divide-gray-200">
@@ -300,19 +302,17 @@ const UserManagement: React.FC = () => {
                                             <td className="px-6 py-4 whitespace-nowrap text-base font-medium text-black">{user.name}</td>
                                             <td className="px-6 py-4 whitespace-nowrap text-base text-black">{user.email}</td>
                                             <td className="px-6 py-4 whitespace-nowrap text-base text-black">{user.role}</td>
-                                            <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium space-x-2">
-                                                {isSuperAdmin && (
-                                                    <>
-                                                        <button onClick={() => handleEdit(user)} className="text-green-700 hover:text-green-900 p-1" aria-label={`Edit ${user.name}`}><EditIcon className="w-5 h-5"/></button>
-                                                        <button onClick={() => handleDelete(user.id)} className="text-red-600 hover:text-red-900 p-1 disabled:opacity-50" disabled={user.id === currentUser?.id} aria-label={`Delete ${user.name}`}><TrashIcon className="w-5 h-5"/></button>
-                                                    </>
-                                                )}
-                                            </td>
+                                            {isSuperAdmin && (
+                                                <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium space-x-2">
+                                                    <button onClick={() => handleEdit(user)} className="text-green-700 hover:text-green-900 p-1" aria-label={`Edit ${user.name}`}><EditIcon className="w-5 h-5"/></button>
+                                                    <button onClick={() => handleDelete(user.id)} className="text-red-600 hover:text-red-900 p-1 disabled:opacity-50" disabled={user.id === currentUser?.id} aria-label={`Delete ${user.name}`}><TrashIcon className="w-5 h-5"/></button>
+                                                </td>
+                                            )}
                                         </tr>
                                     ))
                                 ) : (
                                     <tr>
-                                        <td colSpan={4} className="px-6 py-10 text-center text-gray-500">
+                                        <td colSpan={isSuperAdmin ? 4 : 3} className="px-6 py-10 text-center text-gray-500">
                                             No users found.
                                         </td>
                                     </tr>
