@@ -107,7 +107,7 @@ const GroupModal: React.FC<GroupModalProps> = ({ sheet, onClose, onSave, venues,
                         <label className="block text-sm font-medium text-gray-700">Project Title</label>
                         <input type="text" value={selectedTitle} onChange={e => setSelectedTitle(e.target.value)} required className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-green-500 focus:border-green-500"/>
                     </div>
-                    <div className="flex space-x-4">
+                    <div className="flex flex-col sm:flex-row gap-4">
                         <div className="flex-1">
                              <label className="block text-sm font-medium text-gray-700">Date / Time</label>
                             <input type="datetime-local" value={date} onChange={e => setDate(e.target.value)} className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-green-500 focus:border-green-500"/>
