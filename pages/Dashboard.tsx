@@ -179,16 +179,16 @@ const Dashboard: React.FC<DashboardProps> = ({ navigateToGradeSheet }) => {
 
     return (
         <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-8">
-            <div className="flex justify-between items-center mb-6">
+            <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 mb-6">
                 <h2 className="text-3xl font-bold text-gray-800">Dashboard</h2>
-                <div className="flex space-x-2 no-print">
+                <div className="flex space-x-2 no-print self-start sm:self-auto">
                      <button onClick={handleExportWord} className="px-4 py-2 text-sm font-medium rounded-md bg-blue-600 text-white hover:bg-blue-700 shadow-sm">Export to MS Word</button>
                      <button onClick={handleExportCsv} className="px-4 py-2 text-sm font-medium rounded-md bg-green-700 text-white hover:bg-green-800 shadow-sm">Export to CSV</button>
                 </div>
             </div>
             
             {isAdminOrAdviser && (
-                <div className="mb-6 flex space-x-2 no-print">
+                <div className="mb-6 flex flex-wrap gap-2 no-print">
                     {['All', 'Not Started', 'In Progress', 'Completed'].map(f => (
                         <button
                             key={f}
