@@ -21,9 +21,13 @@ const NavLink: React.FC<{
     label: string;
     isActive: boolean;
     onClick: () => void;
-}> = ({ icon, label, isActive, onClick }) => (
+    closeSidebar: () => void;
+}> = ({ icon, label, isActive, onClick, closeSidebar }) => (
     <button
-        onClick={onClick}
+        onClick={() => {
+            onClick();
+            closeSidebar();
+        }}
         className={`w-full flex items-center px-4 py-3 text-sm font-medium rounded-lg transition-colors duration-200 ${
             isActive
                 ? 'bg-green-800 text-white'
@@ -38,19 +42,21 @@ const NavLink: React.FC<{
 const Sidebar: React.FC<{
     currentPage: Page;
     setPage: (page: Page) => void;
-}> = ({ currentPage, setPage }) => {
+    closeSidebar: () => void;
+}> = ({ currentPage, setPage, closeSidebar }) => {
     const { currentUser } = useAppContext();
     const isAdmin = currentUser?.role === UserRole.ADMIN;
     const isAdviser = currentUser?.role === UserRole.COURSE_ADVISER;
 
     return (
-        <aside className="w-64 bg-green-700 text-white flex flex-col p-4">
+        <aside className="w-64 bg-green-700 text-white flex flex-col h-full p-4">
             <nav className="flex-1 space-y-2">
                 <NavLink
                     icon={<DashboardIcon className="w-6 h-6" />}
                     label="Dashboard"
                     isActive={currentPage === 'dashboard'}
                     onClick={() => setPage('dashboard')}
+                    closeSidebar={closeSidebar}
                 />
                 {(isAdmin || isAdviser) && (
                     <div>
@@ -63,18 +69,21 @@ const Sidebar: React.FC<{
                                 label="Group Management"
                                 isActive={currentPage === 'group-management'}
                                 onClick={() => setPage('group-management')}
+                                closeSidebar={closeSidebar}
                             />
                             <NavLink
                                 icon={<ListIcon className="w-6 h-6" />}
                                 label="Masterlist"
                                 isActive={currentPage === 'masterlist'}
                                 onClick={() => setPage('masterlist')}
+                                closeSidebar={closeSidebar}
                             />
                              <NavLink
                                 icon={<UsersIcon className="w-6 h-6" />}
                                 label="User Management"
                                 isActive={currentPage === 'user-management'}
                                 onClick={() => setPage('user-management')}
+                                closeSidebar={closeSidebar}
                             />
                         </div>
                     </div>
@@ -86,6 +95,7 @@ const Sidebar: React.FC<{
                     label="Change Password"
                     isActive={currentPage === 'change-password'}
                     onClick={() => setPage('change-password')}
+                    closeSidebar={closeSidebar}
                 />
             </div>
         </aside>
@@ -97,10 +107,13 @@ const AppContent: React.FC = () => {
     const { currentUser } = useAppContext();
     const [page, setPage] = useState<Page>('dashboard');
     const [selectedGradeSheetId, setSelectedGradeSheetId] = useState<string>('');
+    const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
     if (!currentUser) {
         return <Login />;
     }
+
+    const closeSidebar = () => setIsSidebarOpen(false);
     
     const navigateToGradeSheet = (id: string) => {
         setSelectedGradeSheetId(id);
@@ -127,13 +140,24 @@ const AppContent: React.FC = () => {
     };
 
     return (
-        <div className="flex h-screen bg-gray-100">
-            <div className="no-print">
-                <Sidebar currentPage={page} setPage={setPage} />
+        <div className="relative min-h-screen bg-gray-100 md:flex">
+             {/* Mobile menu overlay, shown when sidebar is open */}
+            {isSidebarOpen && (
+                <div
+                    className="fixed inset-0 bg-black bg-opacity-50 z-30 md:hidden"
+                    onClick={closeSidebar}
+                    aria-hidden="true"
+                ></div>
+            )}
+            
+            {/* Sidebar */}
+            <div className={`fixed top-0 left-0 h-full transform ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'} transition-transform duration-300 ease-in-out md:relative md:translate-x-0 md:h-screen z-40 no-print`}>
+                 <Sidebar currentPage={page} setPage={setPage} closeSidebar={closeSidebar} />
             </div>
+
             <div className="flex-1 flex flex-col overflow-hidden">
                 <div className="no-print">
-                    <Header />
+                    <Header onMenuClick={() => setIsSidebarOpen(true)} />
                 </div>
                 <main className="flex-1 overflow-x-hidden overflow-y-auto bg-gray-100 printable-area">
                     {renderPage()}
