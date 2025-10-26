@@ -1,7 +1,7 @@
 // FIX: Full content for pages/GroupManagement.tsx
 import React, { useState, useEffect } from 'react';
 import { useAppContext } from '../context/AppContext';
-import { GradeSheet, Page, Student } from '../types';
+import { GradeSheet, Page, Student, User } from '../types';
 import { EditIcon, TrashIcon, InfoIcon } from '../components/Icons';
 
 declare const XLSX: any; // From SheetJS CDN
@@ -146,11 +146,12 @@ interface GroupManagementProps {
 }
 
 const GroupManagement: React.FC<GroupManagementProps> = ({ setPage }) => {
-    const { gradeSheets, addGradeSheet, updateGradeSheet, deleteGradeSheet, deleteAllGradeSheets, venues, addVenue } = useAppContext();
+    const { users, gradeSheets, addGradeSheet, updateGradeSheet, deleteGradeSheet, deleteAllGradeSheets, venues, addVenue, restoreData } = useAppContext();
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingSheet, setEditingSheet] = useState<GradeSheet | null>(null);
     const [showDeleteAllModal, setShowDeleteAllModal] = useState(false);
     const [deleteConfirmationText, setDeleteConfirmationText] = useState('');
+    const [restoreFile, setRestoreFile] = useState<File | null>(null);
 
     const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
         const file = event.target.files?.[0];
@@ -293,6 +294,70 @@ const GroupManagement: React.FC<GroupManagementProps> = ({ setPage }) => {
         setDeleteConfirmationText('');
     };
 
+    const handleExport = (data: any, filename: string) => {
+        const jsonString = `data:text/json;charset=utf-8,${encodeURIComponent(
+            JSON.stringify(data, null, 2)
+        )}`;
+        const link = document.createElement("a");
+        link.href = jsonString;
+        link.download = filename;
+        link.click();
+    };
+
+    const handleFullBackup = () => {
+        const backupData = {
+            users,
+            gradeSheets,
+        };
+        handleExport(backupData, `grading-sheet-backup-${new Date().toISOString().split('T')[0]}.json`);
+    };
+
+    const handleRestoreFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+        const file = event.target.files?.[0] || null;
+        setRestoreFile(file);
+    };
+
+    const handleRestore = async () => {
+        if (!restoreFile) {
+            alert('Please select a backup file to restore.');
+            return;
+        }
+
+        const confirmation = window.prompt(
+            'WARNING: This will ERASE all current data (users, groups, grades) and replace it with the backup. This is irreversible.\n\nTo confirm, type "RESTORE" in the box below.'
+        );
+
+        if (confirmation !== 'RESTORE') {
+            alert('Restore operation cancelled.');
+            return;
+        }
+
+        const reader = new FileReader();
+        reader.onload = async (e) => {
+            try {
+                const text = e.target?.result as string;
+                const backupData = JSON.parse(text);
+
+                if (!backupData.users || !Array.isArray(backupData.users) || !backupData.gradeSheets || !Array.isArray(backupData.gradeSheets)) {
+                    throw new Error("Invalid backup file format. Missing 'users' or 'gradeSheets' arrays.");
+                }
+                
+                await restoreData(backupData);
+                alert('Data restored successfully! The application will now reload to apply the changes.');
+                window.location.reload();
+
+            } catch (err) {
+                console.error("Restore failed:", err);
+                alert(`Error processing backup file: ${(err as Error).message}`);
+            }
+        };
+        reader.onerror = () => {
+            alert('Failed to read the selected file.');
+        };
+        reader.readAsText(restoreFile);
+    };
+
+
     return (
         <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-8">
              <h2 className="text-3xl font-bold text-gray-800 mb-6">Group Management</h2>
@@ -359,16 +424,54 @@ const GroupManagement: React.FC<GroupManagementProps> = ({ setPage }) => {
                 </div>
             </div>
             
-            <div className="border-2 border-red-500 rounded-lg p-6 mt-8">
-                <h3 className="text-2xl font-bold text-red-700 mb-4">Danger Zone</h3>
-                <div className="bg-red-50 border-l-4 border-red-500 p-4 rounded-md">
-                    <h4 className="text-lg font-bold text-red-800">Delete All Grade Sheets</h4>
-                    <p className="text-base text-red-900 mt-2 mb-4">
-                        Permanently delete all grade sheets, panel assignments, and submitted grades from the system. This action cannot be undone and is useful for cleaning up at the end of a semester. Users will not be affected.
+            <div className="p-6 rounded-lg shadow-md bg-white mt-8">
+                <h3 className="text-2xl font-bold text-gray-800 mb-4">System Administration</h3>
+                {/* Backup Section */}
+                <div className="bg-blue-50 border-l-4 border-blue-500 p-4 rounded-md mb-6">
+                    <h4 className="text-lg font-bold text-blue-800">Full System Backup</h4>
+                    <p className="text-base text-blue-900 mt-2 mb-4">
+                        Download a full backup of all users, groups, and grades as a single JSON file. This includes all scores, comments, and panel assignments. Keep this file in a safe place.
                     </p>
-                    <button onClick={() => setShowDeleteAllModal(true)} className="px-4 py-2 bg-red-700 text-white font-medium rounded-md hover:bg-red-800">
-                        Delete All Grade Sheets...
+                    <button onClick={handleFullBackup} className="px-4 py-2 bg-blue-700 text-white font-medium rounded-md hover:bg-blue-800">
+                        Download Full Backup (.json)
                     </button>
+                </div>
+                
+                <div className="border-t-2 border-gray-200 my-6 pt-6">
+                    <div className="border-2 border-red-500 rounded-lg p-6">
+                        <h3 className="text-2xl font-bold text-red-700 mb-4">Danger Zone</h3>
+                        
+                        {/* Restore */}
+                        <div className="bg-red-50 border-l-4 border-red-500 p-4 rounded-md mb-6">
+                            <h4 className="text-lg font-bold text-red-800">Restore from Backup</h4>
+                            <p className="text-base text-red-900 mt-2 mb-4">
+                                <span className="font-bold">Warning:</span> Restoring from a backup will completely overwrite all existing users and grade sheets in the database. This action cannot be undone.
+                            </p>
+                            <div className="flex items-center space-x-4">
+                                <input
+                                    type="file"
+                                    id="restore-file-upload"
+                                    className="block w-full text-sm text-gray-900 bg-gray-50 rounded-lg border border-gray-300 cursor-pointer focus:outline-none"
+                                    accept=".json"
+                                    onChange={handleRestoreFileChange}
+                                />
+                                <button onClick={handleRestore} disabled={!restoreFile} className="flex-shrink-0 px-4 py-2 bg-red-700 text-white font-medium rounded-md hover:bg-red-800 disabled:opacity-50 disabled:cursor-not-allowed">
+                                    Restore Data
+                                </button>
+                            </div>
+                        </div>
+
+                        {/* Delete All */}
+                        <div className="bg-red-50 border-l-4 border-red-500 p-4 rounded-md">
+                            <h4 className="text-lg font-bold text-red-800">Delete All Grade Sheets</h4>
+                            <p className="text-base text-red-900 mt-2 mb-4">
+                                Permanently delete all grade sheets, panel assignments, and submitted grades from the system. This action cannot be undone and is useful for cleaning up at the end of a semester. Users will not be affected.
+                            </p>
+                            <button onClick={() => setShowDeleteAllModal(true)} className="px-4 py-2 bg-red-700 text-white font-medium rounded-md hover:bg-red-800">
+                                Delete All Grade Sheets...
+                            </button>
+                        </div>
+                    </div>
                 </div>
             </div>
 
