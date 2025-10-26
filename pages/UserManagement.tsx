@@ -22,7 +22,11 @@ const UserModal: React.FC<UserModalProps> = ({ user, onClose, onSave }) => {
     const [error, setError] = useState('');
 
     const isEditing = user && 'id' in user;
-    const canChangeRole = currentUser?.role === UserRole.ADMIN || currentUser?.role === UserRole.COURSE_ADVISER;
+    const isSuperAdmin = currentUser?.role === UserRole.ADMIN;
+
+    // An Admin can assign any role. A Course Adviser creating a new user cannot create an Admin.
+    const availableRoles = isSuperAdmin ? USER_ROLES : USER_ROLES.filter(r => r !== UserRole.ADMIN);
+
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
@@ -67,8 +71,8 @@ const UserModal: React.FC<UserModalProps> = ({ user, onClose, onSave }) => {
                     </div>
                     <div>
                         <label className="block text-sm font-medium text-gray-700">Role</label>
-                        <select value={role} onChange={e => setRole(e.target.value as UserRole)} disabled={!canChangeRole} className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-green-500 focus:border-green-500 disabled:bg-gray-100">
-                            {USER_ROLES.map(r => <option key={r} value={r}>{r}</option>)}
+                        <select value={role} onChange={e => setRole(e.target.value as UserRole)} className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-green-500 focus:border-green-500">
+                            {availableRoles.map(r => <option key={r} value={r}>{r}</option>)}
                         </select>
                     </div>
                     <div>
@@ -96,6 +100,8 @@ const UserManagement: React.FC = () => {
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingUser, setEditingUser] = useState<User | null>(null);
     const [restoreFile, setRestoreFile] = useState<File | null>(null);
+
+    const isSuperAdmin = currentUser?.role === UserRole.ADMIN;
 
     const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
         const file = event.target.files?.[0];
@@ -295,8 +301,12 @@ const UserManagement: React.FC = () => {
                                             <td className="px-6 py-4 whitespace-nowrap text-base text-black">{user.email}</td>
                                             <td className="px-6 py-4 whitespace-nowrap text-base text-black">{user.role}</td>
                                             <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium space-x-2">
-                                                <button onClick={() => handleEdit(user)} className="text-green-700 hover:text-green-900 p-1" aria-label={`Edit ${user.name}`}><EditIcon className="w-5 h-5"/></button>
-                                                <button onClick={() => handleDelete(user.id)} className="text-red-600 hover:text-red-900 p-1 disabled:opacity-50" disabled={user.id === currentUser?.id} aria-label={`Delete ${user.name}`}><TrashIcon className="w-5 h-5"/></button>
+                                                {isSuperAdmin && (
+                                                    <>
+                                                        <button onClick={() => handleEdit(user)} className="text-green-700 hover:text-green-900 p-1" aria-label={`Edit ${user.name}`}><EditIcon className="w-5 h-5"/></button>
+                                                        <button onClick={() => handleDelete(user.id)} className="text-red-600 hover:text-red-900 p-1 disabled:opacity-50" disabled={user.id === currentUser?.id} aria-label={`Delete ${user.name}`}><TrashIcon className="w-5 h-5"/></button>
+                                                    </>
+                                                )}
                                             </td>
                                         </tr>
                                     ))
