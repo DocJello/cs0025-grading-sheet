@@ -1,28 +1,5 @@
-import { User, GradeSheet, GradeSheetStatus } from '../types';
-
-// =====================================================================================
-// =====================================================================================
-//
-//    🛑  CRITICAL ACTION REQUIRED: CONFIGURE YOUR BACKEND URL
-//
-// =====================================================================================
-//
-//    You MUST replace the placeholder URL below with the actual URL of your backend
-//    service that you deployed on Render.
-//
-//    1. Find your backend URL on your Render.com dashboard.
-//       It will look like this: 'https://your-app-name.onrender.com'
-//
-//    2. Replace the entire string 'https://YOUR_RENDER_BACKEND_URL_HERE.onrender.com'
-//       below with YOUR real URL.
-//
-//    ✅ Your application WILL NOT WORK until you complete this step.
-//
-// =====================================================================================
+import { User, GradeSheet, GradeSheetStatus, Notification } from '../types';
 export const API_URL = 'https://cs0025-grading-sheet.onrender.com';
-// =====================================================================================
-
-
 const CURRENT_USER_KEY = 'currentUser'; // We still use localStorage for the logged-in user session
 
 // Helper to handle API responses
@@ -115,6 +92,10 @@ export const api = {
         return apiFetch('/api/gradesheets');
     },
 
+    getGradeSheet: async (sheetId: string): Promise<GradeSheet> => {
+        return apiFetch(`/api/gradesheets/${sheetId}`);
+    },
+
     addGradeSheet: async (sheetData: Omit<GradeSheet, 'id' | 'status'>): Promise<GradeSheet> => {
         // The backend will assign id and initial status
         const newSheetPayload = {
@@ -150,6 +131,19 @@ export const api = {
         return apiFetch('/api/restore', {
             method: 'POST',
             body: JSON.stringify(backupData),
+        });
+    },
+
+    // --- Notification API Methods ---
+    getNotifications: async (userId: string): Promise<Notification[]> => {
+        return apiFetch(`/api/users/${userId}/notifications`);
+    },
+    
+    markNotificationsAsRead: async (notificationIds: number[]): Promise<void> => {
+        if (notificationIds.length === 0) return;
+        return apiFetch('/api/notifications/read', {
+            method: 'POST',
+            body: JSON.stringify({ ids: notificationIds }),
         });
     },
 };
