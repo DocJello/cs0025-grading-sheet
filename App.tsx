@@ -1,4 +1,5 @@
 
+
 import React, { useState, ReactNode } from 'react';
 import { AppProvider, useAppContext } from './context/AppContext';
 import { Page, UserRole } from './types';
@@ -11,6 +12,7 @@ import UserManagement from './pages/UserManagement';
 import Masterlist from './pages/Masterlist';
 import ChangePassword from './pages/ChangePassword';
 import GroupManagement from './pages/GroupManagement';
+import { ToastContainer } from './components/Toast';
 
 // Import icons for sidebar
 import { DashboardIcon, UsersIcon, ListIcon, DocumentAddIcon, KeyIcon } from './components/Icons';
@@ -106,7 +108,7 @@ const Sidebar: React.FC<{
 
 
 const AppContent: React.FC = () => {
-    const { currentUser } = useAppContext();
+    const { currentUser, toasts, dismissToast } = useAppContext();
     const [page, setPage] = useState<Page>('dashboard');
     const [selectedGradeSheetId, setSelectedGradeSheetId] = useState<string>('');
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
@@ -156,6 +158,8 @@ const AppContent: React.FC = () => {
             <div className={`fixed top-0 left-0 h-full transform ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'} transition-transform duration-300 ease-in-out md:translate-x-0 z-40 no-print`}>
                  <Sidebar currentPage={page} setPage={setPage} closeSidebar={closeSidebar} />
             </div>
+            
+            <ToastContainer toasts={toasts} dismissToast={dismissToast} />
 
             {/* Content area - has padding on desktop to avoid fixed sidebar */}
             <div className="flex flex-col min-h-screen md:pl-64">
