@@ -1,3 +1,4 @@
+
 import React, { useState, ReactNode } from 'react';
 import { AppProvider, useAppContext } from './context/AppContext';
 import { Page, UserRole } from './types';
@@ -141,7 +142,7 @@ const AppContent: React.FC = () => {
     };
 
     return (
-        <div className="relative min-h-screen bg-gray-100 md:flex">
+        <div className="relative min-h-screen bg-gray-100">
              {/* Mobile menu overlay, shown when sidebar is open */}
             {isSidebarOpen && (
                 <div
@@ -151,12 +152,13 @@ const AppContent: React.FC = () => {
                 ></div>
             )}
             
-            {/* Sidebar */}
-            <div className={`fixed top-0 left-0 h-full transform ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'} transition-transform duration-300 ease-in-out md:relative md:translate-x-0 z-40 no-print`}>
+            {/* Sidebar - now always fixed, but hidden/shown with transforms */}
+            <div className={`fixed top-0 left-0 h-full transform ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'} transition-transform duration-300 ease-in-out md:translate-x-0 z-40 no-print`}>
                  <Sidebar currentPage={page} setPage={setPage} closeSidebar={closeSidebar} />
             </div>
 
-            <div className="flex-1 flex flex-col">
+            {/* Content area - has padding on desktop to avoid fixed sidebar */}
+            <div className="flex flex-col min-h-screen md:pl-64">
                 <div className="no-print">
                     <Header onMenuClick={() => setIsSidebarOpen(true)} />
                 </div>
