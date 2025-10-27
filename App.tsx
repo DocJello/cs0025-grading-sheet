@@ -152,15 +152,15 @@ const AppContent: React.FC = () => {
             )}
             
             {/* Sidebar */}
-            <div className={`fixed top-0 left-0 h-full transform ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'} transition-transform duration-300 ease-in-out md:relative md:translate-x-0 md:h-screen z-40 no-print`}>
+            <div className={`fixed top-0 left-0 h-full transform ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'} transition-transform duration-300 ease-in-out md:relative md:translate-x-0 z-40 no-print`}>
                  <Sidebar currentPage={page} setPage={setPage} closeSidebar={closeSidebar} />
             </div>
 
-            <div className="flex-1 flex flex-col overflow-hidden">
+            <div className="flex-1 flex flex-col">
                 <div className="no-print">
                     <Header onMenuClick={() => setIsSidebarOpen(true)} />
                 </div>
-                <main className="flex-1 overflow-x-hidden overflow-y-auto bg-gray-100 printable-area">
+                <main className="flex-1 overflow-x-hidden bg-gray-100 printable-area">
                     {renderPage()}
                 </main>
                 <Footer />
