@@ -156,11 +156,11 @@ const AppContent: React.FC = () => {
                  <Sidebar currentPage={page} setPage={setPage} closeSidebar={closeSidebar} />
             </div>
 
-            <div className="flex-1 flex flex-col">
+            <div className="flex-1 flex flex-col min-h-0">
                 <div className="no-print">
                     <Header onMenuClick={() => setIsSidebarOpen(true)} />
                 </div>
-                <main className="flex-1 overflow-x-hidden bg-gray-100 printable-area">
+                <main className="flex-1 bg-gray-100 printable-area">
                     {renderPage()}
                 </main>
                 <Footer />
