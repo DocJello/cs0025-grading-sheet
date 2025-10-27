@@ -1,347 +1,186 @@
-const express = require('express');
-const cors = require('cors');
-const { Pool } = require('pg');
 
-const app = express();
-const port = process.env.PORT || 3001;
 
-// --- Database Connection ---
-const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
-  ssl: {
-    rejectUnauthorized: false
-  }
-});
+import React, { useState, ReactNode } from 'react';
+import { AppProvider, useAppContext } from './context/AppContext';
+import { Page, UserRole } from './types';
 
-// --- CORS Configuration ---
-// This allows your Vercel frontend to communicate with this backend.
-const corsOptions = {
-    origin: (origin, callback) => {
-        // Regex to match all possible Vercel deployment URLs for this project
-        // e.g. https://cs0025-grading-sheet.vercel.app
-        // e.g. https://cs0025-grading-sheet-git-main-....vercel.app
-        const vercelRegex = /^https:\/\/cs0025-grading-sheet.*\.vercel\.app$/;
+// Import all page components
+import Login from './pages/Login';
+import Dashboard from './pages/Dashboard';
+import GradingSheet from './pages/GradingSheet';
+import UserManagement from './pages/UserManagement';
+import Masterlist from './pages/Masterlist';
+import ChangePassword from './pages/ChangePassword';
+import GroupManagement from './pages/GroupManagement';
+import { ToastContainer } from './components/Toast';
 
-        // Allow requests with no origin (like server-to-server or REST tools)
-        if (!origin) {
-            return callback(null, true);
-        }
+// Import icons for sidebar
+import { DashboardIcon, UsersIcon, ListIcon, DocumentAddIcon, KeyIcon } from './components/Icons';
+import Header from './components/Header';
+import Footer from './components/Footer';
 
-        // Allow the specific frontend URL from environment variables, if set.
-        if (process.env.FRONTEND_URL && origin === process.env.FRONTEND_URL) {
-            return callback(null, true);
-        }
-        
-        // Allow if the origin matches the Vercel deployment URL pattern.
-        if (vercelRegex.test(origin)) {
-            return callback(null, true);
-        }
-        
-        console.error(`CORS Error: Request from origin '${origin}' blocked.`);
-        return callback(new Error('Not allowed by CORS'));
-    },
-    methods: ['GET', 'POST', 'PUT', 'DELETE'],
-    allowedHeaders: ['Content-Type']
+
+const NavLink: React.FC<{
+    icon: ReactNode;
+    label: string;
+    isActive: boolean;
+    onClick: () => void;
+    closeSidebar: () => void;
+}> = ({ icon, label, isActive, onClick, closeSidebar }) => (
+    <button
+        onClick={() => {
+            onClick();
+            closeSidebar();
+        }}
+        className={`w-full flex items-center px-4 py-3 text-sm font-medium rounded-lg transition-colors duration-200 ${
+            isActive
+                ? 'bg-green-800 text-white'
+                : 'text-gray-200 hover:bg-green-600 hover:text-white'
+        }`}
+    >
+        {icon}
+        <span className="ml-3">{label}</span>
+    </button>
+);
+
+const Sidebar: React.FC<{
+    currentPage: Page;
+    setPage: (page: Page) => void;
+    closeSidebar: () => void;
+}> = ({ currentPage, setPage, closeSidebar }) => {
+    const { currentUser } = useAppContext();
+    const isAdmin = currentUser?.role === UserRole.ADMIN;
+    const isAdviser = currentUser?.role === UserRole.COURSE_ADVISER;
+
+    return (
+        <aside className="w-64 bg-green-700 text-white flex flex-col h-full p-4">
+            <nav className="flex-1 space-y-2">
+                <NavLink
+                    icon={<DashboardIcon className="w-6 h-6" />}
+                    label="Dashboard"
+                    isActive={currentPage === 'dashboard'}
+                    onClick={() => setPage('dashboard')}
+                    closeSidebar={closeSidebar}
+                />
+                {(isAdmin || isAdviser) && (
+                    <div>
+                        <div className="px-4 pt-4 pb-2 text-xs font-semibold text-gray-300 uppercase tracking-wider">
+                            Management
+                        </div>
+                        <div className="space-y-2">
+                             <NavLink
+                                icon={<DocumentAddIcon className="w-6 h-6" />}
+                                label="Group Management"
+                                isActive={currentPage === 'group-management'}
+                                onClick={() => setPage('group-management')}
+                                closeSidebar={closeSidebar}
+                            />
+                            <NavLink
+                                icon={<ListIcon className="w-6 h-6" />}
+                                label="Masterlist"
+                                isActive={currentPage === 'masterlist'}
+                                onClick={() => setPage('masterlist')}
+                                closeSidebar={closeSidebar}
+                            />
+                             <NavLink
+                                icon={<UsersIcon className="w-6 h-6" />}
+                                label="User Management"
+                                isActive={currentPage === 'user-management'}
+                                onClick={() => setPage('user-management')}
+                                closeSidebar={closeSidebar}
+                            />
+                        </div>
+                    </div>
+                )}
+            </nav>
+            <div className="mt-auto">
+                 <NavLink
+                    icon={<KeyIcon className="w-6 h-6" />}
+                    label="Change Password"
+                    isActive={currentPage === 'change-password'}
+                    onClick={() => setPage('change-password')}
+                    closeSidebar={closeSidebar}
+                />
+            </div>
+        </aside>
+    );
 };
 
-app.use(cors(corsOptions));
-app.use(express.json({ limit: '10mb' })); // Increase payload limit for backups
 
+const AppContent: React.FC = () => {
+    const { currentUser, toasts, dismissToast } = useAppContext();
+    const [page, setPage] = useState<Page>('dashboard');
+    const [selectedGradeSheetId, setSelectedGradeSheetId] = useState<string>('');
+    const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
-// --- Automatic Database Initialization ---
-const initializeDatabase = async () => {
-    const client = await pool.connect();
-    try {
-        // Create users table if it doesn't exist
-        await client.query(`
-            CREATE TABLE IF NOT EXISTS users (
-                id VARCHAR(50) PRIMARY KEY,
-                name VARCHAR(100) NOT NULL,
-                email VARCHAR(100) UNIQUE NOT NULL,
-                role VARCHAR(50) NOT NULL,
-                password_hash VARCHAR(255) NOT NULL
-            );
-        `);
-
-        // Create grade_sheets table if it doesn't exist
-        await client.query(`
-            CREATE TABLE IF NOT EXISTS grade_sheets (
-                id VARCHAR(50) PRIMARY KEY,
-                "groupName" VARCHAR(100) NOT NULL,
-                proponents JSONB,
-                "proposedTitles" JSONB,
-                "selectedTitle" VARCHAR(255),
-                program VARCHAR(50),
-                date VARCHAR(50),
-                venue VARCHAR(100),
-                "panel1Id" VARCHAR(50),
-                "panel2Id" VARCHAR(50),
-                "panel1Grades" JSONB,
-                "panel2Grades" JSONB,
-                status VARCHAR(50) NOT NULL
-            );
-        `);
-
-        console.log('Database tables verified/created successfully.');
-
-        // --- Upsert Admin User ---
-        // This ensures the admin account always exists and has the default password.
-        // It's safer than seeding only when the table is empty.
-        const adminUpsertQuery = `
-            INSERT INTO users (id, name, email, role, password_hash) 
-            VALUES ('u_admin_01', 'Admin User', 'admin@example.com', 'Admin', '123')
-            ON CONFLICT (email) 
-            DO UPDATE SET 
-                name = EXCLUDED.name, 
-                role = EXCLUDED.role, 
-                password_hash = EXCLUDED.password_hash,
-                id = 'u_admin_01';
-        `;
-        await client.query(adminUpsertQuery);
-        console.log('Admin user account verified/created successfully.');
-
-        // Check if the users table is otherwise empty to seed other default users
-        const res = await client.query("SELECT COUNT(*) FROM users WHERE email != 'admin@example.com'");
-        if (res.rows[0].count === '0') {
-            console.log('No other users found. Seeding initial panel/adviser data...');
-            // Insert other default users
-            await client.query(`
-                INSERT INTO users (id, name, email, role, password_hash) VALUES
-                ('u_ca_01', 'Course Adviser', 'ca@example.com', 'Course Adviser', '123'),
-                ('u_p_01', 'Panel User 1', 'panel1@example.com', 'Panel', '123'),
-                ('u_p_02', 'Panel User 2', 'panel2@example.com', 'Panel', '123'),
-                ('u_p_03', 'Panel User 3', 'panel3@example.com', 'Panel', '123')
-                ON CONFLICT (email) DO NOTHING;
-            `);
-            console.log('Default panel/adviser users seeded successfully.');
-        } else {
-            console.log('Other users already exist. Skipping non-admin seed.');
-        }
-    } catch (err) {
-        console.error('Error during database initialization:', err.stack);
-        throw err; // Throw error to prevent server from starting in a bad state
-    } finally {
-        client.release();
+    if (!currentUser) {
+        return <Login />;
     }
+
+    const closeSidebar = () => setIsSidebarOpen(false);
+    
+    const navigateToGradeSheet = (id: string) => {
+        setSelectedGradeSheetId(id);
+        setPage('grading-sheet');
+    };
+
+    const renderPage = () => {
+        switch (page) {
+            case 'dashboard':
+                return <Dashboard navigateToGradeSheet={navigateToGradeSheet} />;
+            case 'grading-sheet':
+                return <GradingSheet gradeSheetId={selectedGradeSheetId} setPage={setPage} />;
+            case 'user-management':
+                 return <UserManagement />;
+            case 'masterlist':
+                return <Masterlist />;
+            case 'group-management':
+                return <GroupManagement setPage={setPage} />;
+            case 'change-password':
+                return <ChangePassword />;
+            default:
+                return <Dashboard navigateToGradeSheet={navigateToGradeSheet} />;
+        }
+    };
+
+    return (
+        <div className="relative min-h-screen bg-gray-100">
+             {/* Mobile menu overlay, shown when sidebar is open */}
+            {isSidebarOpen && (
+                <div
+                    className="fixed inset-0 bg-black bg-opacity-50 z-30 md:hidden"
+                    onClick={closeSidebar}
+                    aria-hidden="true"
+                ></div>
+            )}
+            
+            {/* Sidebar - now always fixed, but hidden/shown with transforms */}
+            <div className={`fixed top-0 left-0 h-full transform ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'} transition-transform duration-300 ease-in-out md:translate-x-0 z-40 no-print`}>
+                 <Sidebar currentPage={page} setPage={setPage} closeSidebar={closeSidebar} />
+            </div>
+            
+            <ToastContainer toasts={toasts} dismissToast={dismissToast} />
+
+            {/* Content area - has padding on desktop to avoid fixed sidebar */}
+            <div className="flex flex-col min-h-screen md:pl-64">
+                <div className="no-print">
+                    <Header onMenuClick={() => setIsSidebarOpen(true)} />
+                </div>
+                <main className="flex-1 bg-gray-100 printable-area">
+                    {renderPage()}
+                </main>
+                <Footer />
+            </div>
+        </div>
+    );
 };
 
-// --- API Endpoints ---
-
-// Login
-app.post('/api/login', async (req, res) => {
-    const { email, pass } = req.body;
-    try {
-        // FIX: Use LOWER() on both email input and DB column for case-insensitive login
-        const result = await pool.query('SELECT * FROM users WHERE LOWER(email) = LOWER($1) AND password_hash = $2', [email, pass]);
-        if (result.rows.length > 0) {
-            res.json(result.rows[0]);
-        } else {
-            res.status(401).json({ error: 'Invalid credentials' });
-        }
-    } catch (err) {
-        res.status(500).json({ error: err.message });
-    }
-});
-
-// Users CRUD
-app.get('/api/users', async (req, res) => {
-    try {
-        const result = await pool.query('SELECT * FROM users ORDER BY name');
-        res.json(result.rows);
-    } catch (err) {
-        res.status(500).json({ error: err.message });
-    }
-});
-
-app.post('/api/users', async (req, res) => {
-    const { name, email, role, password_hash } = req.body;
-    const id = `u_${Date.now()}`;
-    try {
-        const result = await pool.query(
-            'INSERT INTO users (id, name, email, role, password_hash) VALUES ($1, $2, $3, $4, $5) RETURNING *',
-            [id, name, email, role, password_hash]
-        );
-        res.status(201).json(result.rows[0]);
-    } catch (err) {
-        res.status(500).json({ error: err.message });
-    }
-});
-
-app.put('/api/users/:id', async (req, res) => {
-    const { id } = req.params;
-    const { name, email, role, password_hash } = req.body;
-    try {
-        const result = await pool.query(
-            'UPDATE users SET name = $1, email = $2, role = $3, password_hash = $4 WHERE id = $5 RETURNING *',
-            [name, email, role, password_hash, id]
-        );
-        res.json(result.rows[0]);
-    } catch (err) {
-        res.status(500).json({ error: err.message });
-    }
-});
-
-app.delete('/api/users/:id', async (req, res) => {
-    const { id } = req.params;
-    try {
-        await pool.query('DELETE FROM users WHERE id = $1', [id]);
-        res.status(204).send();
-    } catch (err) {
-        res.status(500).json({ error: err.message });
-    }
-});
-
-app.post('/api/users/:id/change-password', async (req, res) => {
-    const { id } = req.params;
-    const { oldPassword, newPassword } = req.body;
-    try {
-        // First, verify the old password
-        const userResult = await pool.query('SELECT * FROM users WHERE id = $1 AND password_hash = $2', [id, oldPassword]);
-        if (userResult.rows.length === 0) {
-            return res.status(400).json({ error: "Invalid old password." });
-        }
-        // If old password is correct, update to the new one
-        const updateResult = await pool.query('UPDATE users SET password_hash = $1 WHERE id = $2 RETURNING *', [newPassword, id]);
-        res.json(updateResult.rows[0]);
-    } catch (err) {
-        res.status(500).json({ error: err.message });
-    }
-});
-
-
-// GradeSheets CRUD
-app.get('/api/gradesheets', async (req, res) => {
-    try {
-        const result = await pool.query('SELECT * FROM grade_sheets ORDER BY "groupName"');
-        res.json(result.rows);
-    } catch (err) {
-        res.status(500).json({ error: err.message });
-    }
-});
-
-app.post('/api/gradesheets', async (req, res) => {
-    const { groupName, proponents, proposedTitles, selectedTitle, program, date, venue, panel1Id, panel2Id, panel1Grades, panel2Grades, status } = req.body;
-    // FIX: Append a random string to the ID to ensure uniqueness during fast, consecutive requests.
-    const id = `gs_${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-    try {
-        const result = await pool.query(
-            'INSERT INTO grade_sheets (id, "groupName", proponents, "proposedTitles", "selectedTitle", program, date, venue, "panel1Id", "panel2Id", "panel1Grades", "panel2Grades", status) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13) RETURNING *',
-            [id, groupName, JSON.stringify(proponents || []), JSON.stringify(proposedTitles || []), selectedTitle, program, date, venue, panel1Id, panel2Id, JSON.stringify(panel1Grades || null), JSON.stringify(panel2Grades || null), status]
-        );
-        res.status(201).json(result.rows[0]);
-    } catch (err) {
-        res.status(500).json({ error: err.message });
-    }
-});
-
-app.put('/api/gradesheets/:id', async (req, res) => {
-    const { id } = req.params;
-    const { groupName, proponents, proposedTitles, selectedTitle, program, date, venue, panel1Id, panel2Id, panel1Grades, panel2Grades, status } = req.body;
-    try {
-        const result = await pool.query(
-            'UPDATE grade_sheets SET "groupName" = $1, proponents = $2, "proposedTitles" = $3, "selectedTitle" = $4, program = $5, date = $6, venue = $7, "panel1Id" = $8, "panel2Id" = $9, "panel1Grades" = $10, "panel2Grades" = $11, status = $12 WHERE id = $13 RETURNING *',
-            [groupName, JSON.stringify(proponents || []), JSON.stringify(proposedTitles || []), selectedTitle, program, date, venue, panel1Id, panel2Id, JSON.stringify(panel1Grades || null), JSON.stringify(panel2Grades || null), status, id]
-        );
-        res.json(result.rows[0]);
-    } catch (err) {
-        res.status(500).json({ error: err.message });
-    }
-});
-
-app.delete('/api/gradesheets/:id', async (req, res) => {
-    const { id } = req.params;
-    try {
-        await pool.query('DELETE FROM grade_sheets WHERE id = $1', [id]);
-        res.status(204).send();
-    } catch (err) {
-        res.status(500).json({ error: err.message });
-    }
-});
-
-app.delete('/api/gradesheets/all', async (req, res) => {
-    try {
-        // TRUNCATE is faster and resets any auto-incrementing counters if they existed.
-        await pool.query('TRUNCATE TABLE grade_sheets RESTART IDENTITY');
-        res.status(204).send();
-    } catch (err) {
-        console.error('Error truncating grade_sheets table:', err.stack);
-        res.status(500).json({ error: `Failed to delete all grade sheets: ${err.message}` });
-    }
-});
-
-
-// Restore Endpoint
-app.post('/api/restore', async (req, res) => {
-    const { users, gradeSheets } = req.body;
-
-    if (!Array.isArray(users) || !Array.isArray(gradeSheets)) {
-        return res.status(400).json({ error: 'Invalid backup data format.' });
-    }
-
-    const client = await pool.connect();
-    try {
-        await client.query('BEGIN');
-
-        // Clear existing data. TRUNCATE is faster and resets identity columns.
-        await client.query('TRUNCATE TABLE grade_sheets, users RESTART IDENTITY');
-
-        // Restore users
-        for (const user of users) {
-            const userQuery = `
-                INSERT INTO users (id, name, email, role, password_hash) 
-                VALUES ($1, $2, $3, $4, $5)
-            `;
-            const userValues = [user.id, user.name, user.email, user.role, user.password_hash];
-            await client.query(userQuery, userValues);
-        }
-
-        // Restore grade sheets
-        for (const sheet of gradeSheets) {
-            const sheetQuery = `
-                INSERT INTO grade_sheets (id, "groupName", proponents, "proposedTitles", "selectedTitle", program, date, venue, "panel1Id", "panel2Id", "panel1Grades", "panel2Grades", status) 
-                VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
-            `;
-            const sheetValues = [
-                sheet.id,
-                sheet.groupName,
-                JSON.stringify(sheet.proponents || []),
-                JSON.stringify(sheet.proposedTitles || []),
-                sheet.selectedTitle || null,
-                sheet.program || null,
-                sheet.date || null,
-                sheet.venue || null,
-                sheet.panel1Id || null,
-                sheet.panel2Id || null,
-                JSON.stringify(sheet.panel1Grades || null),
-                JSON.stringify(sheet.panel2Grades || null),
-                sheet.status
-            ];
-            await client.query(sheetQuery, sheetValues);
-        }
-
-        await client.query('COMMIT');
-        res.status(200).json({ message: 'Database restored successfully.' });
-    } catch (err) {
-        await client.query('ROLLBACK');
-        console.error('Error during database restore:', err.stack);
-        res.status(500).json({ error: `Failed to restore database: ${err.message}` });
-    } finally {
-        client.release();
-    }
-});
-
-// --- Start Server ---
-const startServer = async () => {
-    try {
-        // Wait for the database to be initialized before starting the server
-        await initializeDatabase();
-        app.listen(port, () => {
-            console.log(`Server listening on port ${port}`);
-        });
-    } catch (error) {
-        console.error("FATAL: Failed to start server due to database initialization error.");
-        process.exit(1);
-    }
+const App: React.FC = () => {
+    return (
+        <AppProvider>
+            <AppContent />
+        </AppProvider>
+    );
 };
 
-startServer();
+export default App;
