@@ -3,6 +3,7 @@ import React from 'react';
 import { useAppContext } from '../context/AppContext';
 import { APP_NAME } from '../constants';
 import { LogoutIcon, MenuIcon } from './Icons';
+import NotificationBell from './NotificationBell';
 
 const Header: React.FC<{ onMenuClick: () => void }> = ({ onMenuClick }) => {
     const { currentUser, logout } = useAppContext();
@@ -25,7 +26,8 @@ const Header: React.FC<{ onMenuClick: () => void }> = ({ onMenuClick }) => {
                             <h1 className="text-xl font-bold text-green-800">{APP_NAME}</h1>
                         </div>
                     </div>
-                    <div className="flex items-center space-x-4">
+                    <div className="flex items-center space-x-2 sm:space-x-4">
+                        <NotificationBell />
                         <div className="text-right">
                             <p className="text-sm font-medium text-gray-800">{currentUser.name}</p>
                             <p className="text-xs text-gray-500">{currentUser.role}</p>
