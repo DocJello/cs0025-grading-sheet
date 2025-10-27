@@ -1,0 +1,74 @@
+import React, { useEffect } from 'react';
+import { ToastMessage } from '../types';
+import { InfoIcon } from './Icons';
+
+interface ToastProps {
+    toast: ToastMessage;
+    onDismiss: (id: number) => void;
+}
+
+const Toast: React.FC<ToastProps> = ({ toast, onDismiss }) => {
+    useEffect(() => {
+        const timer = setTimeout(() => {
+            onDismiss(toast.id);
+        }, 4000); // Auto-dismiss after 4 seconds
+
+        return () => {
+            clearTimeout(timer);
+        };
+    }, [toast.id, onDismiss]);
+
+    return (
+        <div 
+            className="bg-white shadow-lg rounded-lg pointer-events-auto ring-1 ring-black ring-opacity-5 overflow-hidden animate-fade-in-down"
+            role="alert"
+            aria-live="assertive"
+            aria-atomic="true"
+        >
+            <div className="p-4">
+                <div className="flex items-start">
+                    <div className="flex-shrink-0">
+                        <InfoIcon className="h-6 w-6 text-green-500" />
+                    </div>
+                    <div className="ml-3 w-0 flex-1 pt-0.5">
+                        <p className="text-sm font-medium text-gray-900">New Notification</p>
+                        <p className="mt-1 text-sm text-gray-500">{toast.message}</p>
+                    </div>
+                    <div className="ml-4 flex-shrink-0 flex">
+                        <button
+                            onClick={() => onDismiss(toast.id)}
+                            className="bg-white rounded-md inline-flex text-gray-400 hover:text-gray-500 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500"
+                        >
+                            <span className="sr-only">Close</span>
+                            <svg className="h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                                <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    );
+};
+
+
+interface ToastContainerProps {
+    toasts: ToastMessage[];
+    dismissToast: (id: number) => void;
+}
+
+export const ToastContainer: React.FC<ToastContainerProps> = ({ toasts, dismissToast }) => {
+    return (
+        <div
+            aria-live="polite"
+            aria-atomic="true"
+            className="fixed inset-0 pointer-events-none p-6 flex items-start justify-end z-50"
+        >
+            <div className="w-full max-w-sm space-y-4">
+                {toasts.map(toast => (
+                    <Toast key={toast.id} toast={toast} onDismiss={dismissToast} />
+                ))}
+            </div>
+        </div>
+    );
+};
