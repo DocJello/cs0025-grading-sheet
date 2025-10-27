@@ -7,10 +7,11 @@ const Footer: React.FC = () => {
             <p className="font-semibold text-gray-800">Rguzone Software Solutions</p>
             <div className="flex items-center justify-center mt-1">
                 <CallIcon className="w-4 h-4 mr-2" />
-                <p>Contact: Dr. Angelo C. Arguson</p>
+                <p> Dr. Angelo C. Arguson</p>
             </div>
         </footer>
     );
 };
 
 export default Footer;
+
