@@ -62,3 +62,18 @@ export interface GradeSheet {
 }
 
 export type Page = 'dashboard' | 'grading-sheet' | 'user-management' | 'masterlist' | 'group-management' | 'change-password';
+
+// Types for the new notification system
+export interface Notification {
+    id: number;
+    recipient_user_id: string;
+    message: string;
+    grade_sheet_id: string | null;
+    is_read: boolean;
+    created_at: string;
+}
+
+export interface ToastMessage {
+    id: number; // Use notification ID for uniqueness
+    message: string;
+}
