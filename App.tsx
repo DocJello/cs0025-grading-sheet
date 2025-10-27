@@ -156,7 +156,7 @@ const AppContent: React.FC = () => {
                  <Sidebar currentPage={page} setPage={setPage} closeSidebar={closeSidebar} />
             </div>
 
-            <div className="flex-1 flex flex-col min-h-0">
+            <div className="flex-1 flex flex-col min-h-screen">
                 <div className="no-print">
                     <Header onMenuClick={() => setIsSidebarOpen(true)} />
                 </div>
