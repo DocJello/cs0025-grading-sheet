@@ -1,5 +1,5 @@
-import React, { createContext, useState, useContext, ReactNode, useEffect } from 'react';
-import { User, GradeSheet, GradeSheetStatus } from '../types';
+import React, { createContext, useState, useContext, ReactNode, useEffect, useRef } from 'react';
+import { User, GradeSheet, GradeSheetStatus, Notification, ToastMessage } from '../types';
 // FIX: Removed API_URL import as it's no longer used in this file.
 import { api } from './api';
 
@@ -8,6 +8,8 @@ interface AppContextType {
     users: User[];
     gradeSheets: GradeSheet[];
     venues: string[];
+    notifications: Notification[];
+    toasts: ToastMessage[];
     login: (email: string, pass: string) => Promise<boolean>;
     logout: () => Promise<void>;
     findUserById: (id: string) => User | undefined;
@@ -22,6 +24,8 @@ interface AppContextType {
     changePassword: (oldPass: string, newPass: string) => Promise<boolean>;
     addVenue: (venue: string) => void;
     restoreData: (backupData: { users: User[], gradeSheets: GradeSheet[] }) => Promise<void>;
+    dismissToast: (toastId: number) => void;
+    markNotificationsAsRead: (ids: number[]) => Promise<void>;
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
@@ -34,6 +38,9 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     const [gradeSheets, setGradeSheets] = useState<GradeSheet[]>([]);
     const [venues, setVenues] = useState<string[]>(['AVR', 'CASE', 'FTIC-Project Room', 'FTIC-Discussion Room 1', 'FTIC-Discussion Room 2', 'FTIC-Discussion Room 3']);
     const [isLoading, setIsLoading] = useState(true);
+    const [notifications, setNotifications] = useState<Notification[]>([]);
+    const [toasts, setToasts] = useState<ToastMessage[]>([]);
+    const pollIntervalRef = useRef<number | null>(null);
 
     useEffect(() => {
         const loadInitialData = async () => {
@@ -58,6 +65,52 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         loadInitialData();
     }, []);
 
+    const pollNotifications = async (userId: string) => {
+        try {
+            const fetchedNotifications = await api.getNotifications(userId);
+            if (fetchedNotifications.length > 0) {
+                 // Prevent showing toasts for notifications we already have
+                const existingIds = new Set(notifications.map(n => n.id));
+                const newNotifications = fetchedNotifications.filter(n => !existingIds.has(n.id));
+
+                if (newNotifications.length > 0) {
+                    setToasts(currentToasts => [...currentToasts, ...newNotifications.map(n => ({ id: n.id, message: n.message }))]);
+                    
+                    const sheetIdsToUpdate = [...new Set(newNotifications.map(n => n.grade_sheet_id).filter(Boolean))] as string[];
+                    if (sheetIdsToUpdate.length > 0) {
+                        const updatedSheets = await Promise.all(sheetIdsToUpdate.map(id => api.getGradeSheet(id)));
+                        setGradeSheets(prevSheets => {
+                            const sheetsMap = new Map(prevSheets.map(s => [s.id, s]));
+                            updatedSheets.forEach(us => sheetsMap.set(us.id, us));
+                            return Array.from(sheetsMap.values());
+                        });
+                    }
+                }
+                setNotifications(fetchedNotifications);
+            } else {
+                 setNotifications([]); // Clear if no unread notifications
+            }
+        } catch (error) {
+            console.error("Failed to poll notifications", error);
+        }
+    };
+
+    useEffect(() => {
+        if (currentUser) {
+            pollNotifications(currentUser.id); // Initial poll
+            pollIntervalRef.current = window.setInterval(() => {
+                pollNotifications(currentUser.id);
+            }, 15000); // Poll every 15 seconds
+        }
+
+        return () => {
+            if (pollIntervalRef.current) {
+                clearInterval(pollIntervalRef.current);
+            }
+        };
+    }, [currentUser]);
+
+
     const login = async (email: string, pass: string): Promise<boolean> => {
         try {
             const user = await api.login(email, pass);
@@ -80,6 +133,11 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         setCurrentUser(null);
         setUsers([]);
         setGradeSheets([]);
+        setNotifications([]);
+        setToasts([]);
+        if (pollIntervalRef.current) {
+            clearInterval(pollIntervalRef.current);
+        }
     };
 
     const findUserById = (id: string): User | undefined => users.find(u => u.id === id);
@@ -179,12 +237,28 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         await api.restoreData(backupData);
         // The page is reloaded in the component after this, so no need to refresh state here.
     };
+
+    const dismissToast = (toastId: number) => {
+        setToasts(currentToasts => currentToasts.filter(t => t.id !== toastId));
+    };
+
+    const markNotificationsAsRead = async (ids: number[]) => {
+        try {
+            await api.markNotificationsAsRead(ids);
+            // Optimistically update the UI
+            setNotifications(prev => prev.filter(n => !ids.includes(n.id)));
+        } catch (error) {
+            console.error("Failed to mark notifications as read", error);
+        }
+    };
     
     const value = {
         currentUser,
         users,
         gradeSheets,
         venues,
+        notifications,
+        toasts,
         login,
         logout,
         findUserById,
@@ -199,6 +273,8 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         changePassword,
         addVenue,
         restoreData,
+        dismissToast,
+        markNotificationsAsRead,
     };
     
     if (isLoading) {
