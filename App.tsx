@@ -14,6 +14,7 @@ import GroupManagement from './pages/GroupManagement';
 // Import icons for sidebar
 import { DashboardIcon, UsersIcon, ListIcon, DocumentAddIcon, KeyIcon } from './components/Icons';
 import Header from './components/Header';
+import Footer from './components/Footer';
 
 
 const NavLink: React.FC<{
@@ -162,6 +163,7 @@ const AppContent: React.FC = () => {
                 <main className="flex-1 overflow-x-hidden overflow-y-auto bg-gray-100 printable-area">
                     {renderPage()}
                 </main>
+                <Footer />
             </div>
         </div>
     );
