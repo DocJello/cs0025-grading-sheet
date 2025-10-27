@@ -125,6 +125,30 @@ const GradingSheet: React.FC<GradingSheetProps> = ({ gradeSheetId, setPage }) =>
         }
     }, [showSuccess, setPage]);
 
+    const isFormComplete = useMemo(() => {
+        if (!grades || !sheet) return false;
+
+        const titleDefenseComplete = TITLE_DEFENSE_RUBRIC.every(
+            item => grades.titleDefenseScores[item.id] !== undefined && grades.titleDefenseScores[item.id] !== null
+        );
+
+        const individualComplete = sheet.proponents.every(student =>
+            INDIVIDUAL_GRADE_RUBRIC.every(
+                item => grades.individualScores[student.id]?.[item.id] !== undefined && grades.individualScores[student.id]?.[item.id] !== null
+            )
+        );
+        
+        const commentsComplete = () => {
+            const trimmedComments = grades.comments.trim();
+            if (trimmedComments.length === 0) return false;
+            // Simple sentence check: count sentence-ending punctuation.
+            const sentences = trimmedComments.match(/[^\.!\?]+[\.!\?]+/g);
+            return sentences ? sentences.length >= 2 : false;
+        };
+
+        return titleDefenseComplete && individualComplete && commentsComplete();
+    }, [grades, sheet]);
+
     const handleDetailChange = (field: keyof typeof localDetails, value: string) => {
         setLocalDetails(prev => ({...prev, [field]: value}));
         if (field === 'venue' && value === 'Others') {
@@ -175,8 +199,9 @@ const GradingSheet: React.FC<GradingSheetProps> = ({ gradeSheetId, setPage }) =>
     };
 
     const handleSubmit = () => {
-        if (!sheet || !grades) return;
+        if (!sheet || !grades || !isFormComplete) return;
 
+        // Validation is now primarily handled by isFormComplete, but we can build the nice error message here.
         const missing: string[] = [];
         // Check title defense scores
         TITLE_DEFENSE_RUBRIC.forEach(item => {
@@ -194,7 +219,12 @@ const GradingSheet: React.FC<GradingSheetProps> = ({ gradeSheetId, setPage }) =>
         });
         // Check comments
         if (!grades.comments.trim()) {
-            missing.push("- Comments section");
+            missing.push("- Comments section is blank.");
+        } else {
+            const sentences = grades.comments.trim().match(/[^\.!\?]+[\.!\?]+/g);
+            if (!sentences || sentences.length < 2) {
+                missing.push("- Comments & Feedback must contain at least 2 sentences.");
+            }
         }
 
         if (missing.length > 0) {
@@ -346,7 +376,12 @@ const GradingSheet: React.FC<GradingSheetProps> = ({ gradeSheetId, setPage }) =>
                 {/* Actions */}
                 {!isReadOnly && (
                     <div className="flex justify-end">
-                        <button onClick={handleSubmit} className="px-8 py-3 bg-green-700 text-white font-bold rounded-md hover:bg-green-800 disabled:opacity-50">
+                        <button 
+                            onClick={handleSubmit} 
+                            disabled={!isFormComplete}
+                            title={!isFormComplete ? "Please fill all scores and add at least two sentences in comments." : "Submit grades for this group"}
+                            className="px-8 py-3 bg-green-700 text-white font-bold rounded-md hover:bg-green-800 disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
                             Submit Final Grades
                         </button>
                     </div>
