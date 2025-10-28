@@ -303,22 +303,23 @@ app.put('/api/gradesheets/:id', async (req, res) => {
         const wasCompleted = oldSheet.status === 'Completed';
         const isCompleted = newSheet.status === 'Completed';
 
-        // Get names of panelists and list of admins/advisers
+        // Get names of panelists and list of advisers
         const panel1User = newSheet.panel1Id ? (await client.query('SELECT name FROM users WHERE id = $1', [newSheet.panel1Id])).rows[0] : null;
         const panel2User = newSheet.panel2Id ? (await client.query('SELECT name FROM users WHERE id = $1', [newSheet.panel2Id])).rows[0] : null;
-        const adminsAndAdvisers = await client.query("SELECT id FROM users WHERE role = 'Admin' OR role = 'Course Adviser'");
+        // Admins are now excluded from completion notifications.
+        const courseAdvisers = await client.query("SELECT id FROM users WHERE role = 'Course Adviser'");
         
         // --- Event-based notifications ---
         
-        // Group is newly completed: Notify everyone involved.
+        // Group is newly completed: Notify panelists and advisers.
         if (!wasCompleted && isCompleted) {
             const msg = `Grading for group "${newSheet.groupName}" is now complete.`;
             // Notify both panelists
             if (newSheet.panel1Id) await createNotification(client, newSheet.panel1Id, msg, newSheet.id);
             if (newSheet.panel2Id) await createNotification(client, newSheet.panel2Id, msg, newSheet.id);
             
-            // Notify admins and advisers, avoiding duplicate notifications for panelists who are also admins.
-            for (const user of adminsAndAdvisers.rows) {
+            // Notify course advisers, avoiding duplicate notifications for panelists who are also advisers.
+            for (const user of courseAdvisers.rows) {
                 if (user.id !== newSheet.panel1Id && user.id !== newSheet.panel2Id) {
                     await createNotification(client, user.id, msg, newSheet.id);
                 }
