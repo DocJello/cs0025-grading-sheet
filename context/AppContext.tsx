@@ -1,5 +1,5 @@
 import React, { createContext, useState, useContext, ReactNode, useEffect, useRef } from 'react';
-import { User, GradeSheet, GradeSheetStatus, Notification, ToastMessage } from '../types';
+import { User, GradeSheet, GradeSheetStatus, Notification, ToastMessage, UserRole } from '../types';
 // FIX: Removed API_URL import as it's no longer used in this file.
 import { api } from './api';
 
@@ -69,12 +69,20 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         try {
             const fetchedNotifications = await api.getNotifications(userId);
             if (fetchedNotifications.length > 0) {
-                 // Prevent showing toasts for notifications we already have
+                 // Prevent showing toasts for notifications we already have in state
                 const existingIds = new Set(notifications.map(n => n.id));
                 const newNotifications = fetchedNotifications.filter(n => !existingIds.has(n.id));
 
                 if (newNotifications.length > 0) {
-                    setToasts(currentToasts => [...currentToasts, ...newNotifications.map(n => ({ id: n.id, message: n.message }))]);
+                    // Also prevent showing toasts that have been shown in this session
+                    const shownToastIds = new Set(JSON.parse(sessionStorage.getItem('shownToastIds') || '[]'));
+                    const notificationsForToast = newNotifications.filter(n => !shownToastIds.has(n.id));
+
+                    if (notificationsForToast.length > 0) {
+                        setToasts(currentToasts => [...currentToasts, ...notificationsForToast.map(n => ({ id: n.id, message: n.message }))]);
+                        notificationsForToast.forEach(n => shownToastIds.add(n.id));
+                        sessionStorage.setItem('shownToastIds', JSON.stringify(Array.from(shownToastIds)));
+                    }
                     
                     const sheetIdsToUpdate = [...new Set(newNotifications.map(n => n.grade_sheet_id).filter(Boolean))] as string[];
                     if (sheetIdsToUpdate.length > 0) {
@@ -96,7 +104,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     };
 
     useEffect(() => {
-        if (currentUser) {
+        if (currentUser && currentUser.role !== UserRole.ADMIN) {
             pollNotifications(currentUser.id); // Initial poll
             pollIntervalRef.current = window.setInterval(() => {
                 pollNotifications(currentUser.id);
@@ -115,6 +123,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         try {
             const user = await api.login(email, pass);
             setCurrentUser(user);
+            sessionStorage.removeItem('shownToastIds');
             // After login, refresh data
             const [loadedUsers, loadedSheets] = await Promise.all([
                 api.getUsers(),
@@ -135,6 +144,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         setGradeSheets([]);
         setNotifications([]);
         setToasts([]);
+        sessionStorage.removeItem('shownToastIds');
         if (pollIntervalRef.current) {
             clearInterval(pollIntervalRef.current);
         }
