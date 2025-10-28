@@ -1,3 +1,4 @@
+
 # CS0025 Grading Sheet - Backend
 
 This directory contains the Node.js backend for the Online Grading Sheet application. It uses Express.js to provide a REST API and connects to a PostgreSQL database.
@@ -30,7 +31,7 @@ Follow these steps to deploy both the database and the backend service on Render
     | Key            | Value                                                              |
     | -------------- | ------------------------------------------------------------------ |
     | `DATABASE_URL` | Paste the **Internal Database URL** you copied from Step 1.        |
-    | `FRONTEND_URL` | **(REQUIRED)** Enter the main URL of your deployed Vercel frontend. It should look like `https://your-project-name.vercel.app`. **Your app will not start without this variable.** |
+    | `FRONTEND_URL` | Enter the main URL of your deployed Vercel frontend. It should look like `https://cs0025-grading-sheet-git-main-....vercel.app` |
 
 5.  Ensure the plan is **Free** and click **Create Web Service**.
 

@@ -1,106 +1,16 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>CS0025 Online Grading Sheet</title>
-  <script src="https://cdn.tailwindcss.com"></script>
-  <!-- SheetJS for XLSX/CSV parsing -->
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-  <style>
-    /* Default screen styles */
-    .print-only {
-      display: none;
-    }
 
-    @media print {
-      /* Hide elements that should not be printed */
-      .no-print {
-        display: none !important;
-      }
-      
-      /* Show elements that are only for printing */
-      .print-only {
-        display: block !important;
-      }
-      
-      /* Reset layout of the entire page for printing */
-      body, #root, .flex.h-screen, .flex-1.flex.flex-col {
-        display: block !important;
-        height: auto !important;
-        overflow: visible !important;
-        background-color: white !important;
-      }
-      
-      /* Prepare the main content area for printing */
-      main.printable-area {
-        position: static !important;
-        width: 100% !important;
-        padding: 1rem !important;
-        margin: 0 !important;
-        overflow: visible !important;
-        box-shadow: none !important;
-        border: none !important;
-        font-size: 10pt; /* Using points is better for print */
-      }
-      
-      /* Ensure links are printed cleanly */
-      a[href]:after {
-        content: none !important;
-      }
-      
-      /* Improve table printing */
-      table {
-        width: 100% !important;
-        border-collapse: collapse !important;
-        break-inside: auto;
-      }
-      thead {
-        display: table-header-group; /* Repeat table headers on each page */
-      }
-      tr {
-        break-inside: avoid;
-        break-after: auto;
-      }
-      th, td {
-        padding: 4px 6px !important;
-        border: 1px solid #ccc !important;
-      }
-      
-      /* Remove shadows and other screen-only decorations */
-      .shadow, .shadow-md, .shadow-lg {
-        box-shadow: none !important;
-      }
-    }
+import React from 'react';
+import ReactDOM from 'react-dom/client';
+import App from './App';
 
-    /* Custom animation for bottom toast */
-    @keyframes fade-in-up {
-        0% {
-            opacity: 0;
-            transform: translateY(20px);
-        }
-        100% {
-            opacity: 1;
-            transform: translateY(0);
-        }
-    }
-    .animate-fade-in-up {
-        animation: fade-in-up 0.5s ease-out forwards;
-    }
-  </style>
-</head>
-<body>
-  <div id="root"></div>
-  <script type="importmap">
-{
-  "imports": {
-    "react": "https://aistudiocdn.com/react@^19.1.1",
-    "react-dom/": "https://aistudiocdn.com/react-dom@^19.1.1/",
-    "react/": "https://aistudiocdn.com/react@^19.1.1/",
-    "@google/genai": "https://aistudiocdn.com/@google/genai@^1.17.0"
-  }
+const rootElement = document.getElementById('root');
+if (!rootElement) {
+  throw new Error("Could not find root element to mount to");
 }
-</script>
-  <script type="module" src="/index.tsx"></script>
-</body>
-</html>
+
+const root = ReactDOM.createRoot(rootElement);
+root.render(
+  <React.StrictMode>
+    <App />
+  </React.StrictMode>
+);

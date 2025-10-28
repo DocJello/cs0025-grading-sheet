@@ -1,3 +1,4 @@
+
 // FIX: Full content for types.ts
 export enum UserRole {
     ADMIN = 'Admin',

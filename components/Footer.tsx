@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { CallIcon } from './Icons';
 
@@ -14,4 +15,3 @@ const Footer: React.FC = () => {
 };
 
 export default Footer;
-
