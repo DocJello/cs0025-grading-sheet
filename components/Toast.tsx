@@ -20,7 +20,7 @@ const Toast: React.FC<ToastProps> = ({ toast, onDismiss }) => {
 
     return (
         <div 
-            className="bg-white shadow-lg rounded-lg pointer-events-auto ring-1 ring-black ring-opacity-5 overflow-hidden animate-fade-in-down"
+            className="bg-white shadow-lg rounded-lg pointer-events-auto ring-1 ring-black ring-opacity-5 overflow-hidden animate-fade-in-up"
             role="alert"
             aria-live="assertive"
             aria-atomic="true"
@@ -62,7 +62,7 @@ export const ToastContainer: React.FC<ToastContainerProps> = ({ toasts, dismissT
         <div
             aria-live="polite"
             aria-atomic="true"
-            className="fixed inset-0 pointer-events-none p-6 flex items-start justify-end z-50"
+            className="fixed inset-0 pointer-events-none p-6 flex items-end justify-end z-50"
         >
             <div className="w-full max-w-sm space-y-4">
                 {toasts.map(toast => (
