@@ -1,4 +1,3 @@
-
 const express = require('express');
 const cors = require('cors');
 const { Pool } = require('pg');
@@ -312,6 +311,29 @@ app.put('/api/gradesheets/:id', async (req, res) => {
         
         // --- Event-based notifications ---
         
+        // Panel 1 just submitted
+        if (!wasP1Submitted && isP1Submitted && panel1User) {
+            // If this submission *doesn't* complete the sheet, notify the other panelist.
+            // The completion notification is handled separately below.
+            if (!isCompleted) { 
+                const msg = `${panel1User.name} has submitted grades for the group "${newSheet.groupName}".`;
+                if (newSheet.panel2Id) {
+                    await createNotification(client, newSheet.panel2Id, msg, newSheet.id);
+                }
+            }
+        }
+        
+        // Panel 2 just submitted
+        if (!wasP2Submitted && isP2Submitted && panel2User) {
+            // If this submission *doesn't* complete the sheet, notify the other panelist.
+            if (!isCompleted) {
+                const msg = `${panel2User.name} has submitted grades for the group "${newSheet.groupName}".`;
+                if (newSheet.panel1Id) {
+                    await createNotification(client, newSheet.panel1Id, msg, newSheet.id);
+                }
+            }
+        }
+
         // Group is newly completed: Notify panelists and advisers.
         if (!wasCompleted && isCompleted) {
             const msg = `Grading for group "${newSheet.groupName}" is now complete.`;
@@ -323,27 +345,6 @@ app.put('/api/gradesheets/:id', async (req, res) => {
             for (const user of courseAdvisers.rows) {
                 if (user.id !== newSheet.panel1Id && user.id !== newSheet.panel2Id) {
                     await createNotification(client, user.id, msg, newSheet.id);
-                }
-            }
-        } else {
-            // If not newly completed, send notifications about intermediate steps.
-            // This 'else' prevents sending "Panel X submitted" and "Complete" in the same transaction.
-
-            // Panel 1 just submitted
-            if (!wasP1Submitted && isP1Submitted && panel1User) {
-                const msg = `${panel1User.name} has submitted grades for "${newSheet.groupName}".`;
-                // Only notify the other panelist
-                if (newSheet.panel2Id) {
-                    await createNotification(client, newSheet.panel2Id, msg, newSheet.id);
-                }
-            }
-            
-            // Panel 2 just submitted
-            if (!wasP2Submitted && isP2Submitted && panel2User) {
-                const msg = `${panel2User.name} has submitted grades for "${newSheet.groupName}".`;
-                // Only notify the other panelist
-                if (newSheet.panel1Id) {
-                    await createNotification(client, newSheet.panel1Id, msg, newSheet.id);
                 }
             }
         }
