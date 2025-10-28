@@ -8,11 +8,36 @@ interface ToastProps {
     onDismiss: (id: number) => void;
 }
 
+// New component to format the message with colors
+const FormattedToastMessage: React.FC<{ message: string }> = ({ message }) => {
+    // Regex to capture panel names (e.g., "Panel 1") and group names in quotes (e.g., ""Group Name"")
+    const regex = /(Panel\s\d+|"[^"]+")/g;
+    const parts = message.split(regex);
+
+    return (
+        <>
+            {parts.map((part, index) => {
+                if (!part) return null;
+                if (part.startsWith('Panel')) {
+                    // Panel names are blue
+                    return <strong key={index} className="font-semibold text-blue-600">{part}</strong>;
+                }
+                if (part.startsWith('"')) {
+                    // Group names are green
+                    return <strong key={index} className="font-semibold text-green-700">{part}</strong>;
+                }
+                // The rest of the text
+                return <span key={index}>{part}</span>;
+            })}
+        </>
+    );
+};
+
 const Toast: React.FC<ToastProps> = ({ toast, onDismiss }) => {
     useEffect(() => {
         const timer = setTimeout(() => {
             onDismiss(toast.id);
-        }, 4000); // Auto-dismiss after 4 seconds
+        }, 5000); // Auto-dismiss after 5 seconds
 
         return () => {
             clearTimeout(timer);
@@ -27,13 +52,14 @@ const Toast: React.FC<ToastProps> = ({ toast, onDismiss }) => {
             aria-atomic="true"
         >
             <div className="p-4">
-                <div className="flex items-start">
+                <div className="flex items-center">
                     <div className="flex-shrink-0">
                         <InfoIcon className="h-6 w-6 text-green-500" />
                     </div>
-                    <div className="ml-3 w-0 flex-1 pt-0.5">
-                        <p className="text-sm font-medium text-gray-900">New Notification</p>
-                        <p className="mt-1 text-sm text-gray-500">{toast.message}</p>
+                    <div className="ml-3 w-0 flex-1">
+                        <p className="text-sm text-gray-600">
+                           <FormattedToastMessage message={toast.message} />
+                        </p>
                     </div>
                     <div className="ml-4 flex-shrink-0 flex">
                         <button
