@@ -45,7 +45,7 @@ const Toast: React.FC<ToastProps> = ({ toast, onDismiss }) => {
 
     return (
         <div 
-            className="bg-white shadow-lg pointer-events-auto border-2 border-sky-500 overflow-hidden animate-fade-in-up"
+            className="bg-white shadow-lg rounded-md pointer-events-auto ring-1 ring-black ring-opacity-5 overflow-hidden animate-fade-in-up"
             role="alert"
             aria-live="assertive"
             aria-atomic="true"
@@ -55,8 +55,8 @@ const Toast: React.FC<ToastProps> = ({ toast, onDismiss }) => {
                     <div className="flex-shrink-0">
                         <InfoIcon className="h-6 w-6 text-green-500" />
                     </div>
-                    <div className="ml-3 w-0 flex-1 text-right">
-                        <p className="text-sm text-gray-600">
+                    <div className="ml-3 w-0 flex-1">
+                        <p className="text-sm text-gray-800">
                            <FormattedToastMessage message={toast.message} />
                         </p>
                     </div>
@@ -88,9 +88,9 @@ export const ToastContainer: React.FC<ToastContainerProps> = ({ toasts, dismissT
         <div
             aria-live="polite"
             aria-atomic="true"
-            className="fixed bottom-0 right-0 p-4 pointer-events-none z-50 flex flex-col items-end"
+            className="fixed bottom-0 left-0 right-0 p-4 pointer-events-none z-50 flex flex-col items-center"
         >
-            <div className="w-full max-w-lg space-y-4">
+            <div className="w-full max-w-2xl space-y-4">
                 {toasts.map(toast => (
                     <Toast key={toast.id} toast={toast} onDismiss={dismissToast} />
                 ))}
