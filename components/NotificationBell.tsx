@@ -1,11 +1,35 @@
-
 import React, { useState, useRef, useEffect } from 'react';
 import { useAppContext } from '../context/AppContext';
 import { BellIcon } from './Icons';
 import { Notification } from '../types';
 
+// Component to format the message with colors for panel and group names
+const FormattedNotificationMessage: React.FC<{ message: string }> = ({ message }) => {
+    // Regex to capture panel names (e.g., "Panel 2") and group names in quotes (e.g., ""Test_Group1"")
+    const regex = /(Panel\s\d+|"[^"]+")/g;
+    const parts = message.split(regex);
+
+    return (
+        <p>
+            {parts.map((part, index) => {
+                if (!part) return null; // Ignore empty parts from split
+                if (part.startsWith('Panel')) {
+                    // Panel names are blue
+                    return <strong key={index} className="font-semibold text-blue-600">{part}</strong>;
+                }
+                if (part.startsWith('"')) {
+                    // Group names are green
+                    return <strong key={index} className="font-semibold text-green-700">{part}</strong>;
+                }
+                // The rest of the text
+                return <span key={index}>{part}</span>;
+            })}
+        </p>
+    );
+};
+
 const NotificationBell: React.FC = () => {
-    const { notifications, markNotificationsAsRead, findUserById } = useAppContext();
+    const { notifications, markNotificationsAsRead } = useAppContext();
     const [isOpen, setIsOpen] = useState(false);
     const dropdownRef = useRef<HTMLDivElement>(null);
 
@@ -69,7 +93,7 @@ const NotificationBell: React.FC = () => {
                             {unreadCount > 0 ? (
                                 notifications.map(notification => (
                                     <div key={notification.id} className="block px-4 py-3 text-sm text-gray-700 border-b hover:bg-gray-50">
-                                        <p>{notification.message}</p>
+                                        <FormattedNotificationMessage message={notification.message} />
                                         <p className="text-xs text-gray-400 mt-1">
                                             {new Date(notification.created_at).toLocaleString()}
                                         </p>
