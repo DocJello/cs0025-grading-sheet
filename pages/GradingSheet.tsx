@@ -244,7 +244,6 @@ const GradingSheet: React.FC<GradingSheetProps> = ({ gradeSheetId, setPage }) =>
         return <div className="p-8 text-center text-gray-500">Loading or you do not have permission...</div>;
     }
     
-    const isReadOnly = grades?.submitted || false;
     const canSaveDetails = localDetails.title && localDetails.program && localDetails.date && localDetails.venue;
 
     return (
@@ -326,7 +325,7 @@ const GradingSheet: React.FC<GradingSheetProps> = ({ gradeSheetId, setPage }) =>
                                     <td className="p-3 align-middle text-center font-medium w-24">{item.weight}</td>
                                     <td className="p-3 align-middle w-32">
                                         <div className="flex items-center justify-center space-x-2">
-                                            <input type="number" value={grades.titleDefenseScores[item.id] ?? ''} placeholder="0" onChange={e => handleScoreChange(item.id, e.target.value, item.weight)} disabled={isReadOnly} className="w-20 p-2 border rounded-md text-center disabled:bg-gray-100"/>
+                                            <input type="number" value={grades.titleDefenseScores[item.id] ?? ''} placeholder="0" onChange={e => handleScoreChange(item.id, e.target.value, item.weight)} className="w-20 p-2 border rounded-md text-center bg-white disabled:bg-gray-100"/>
                                             <InfoIconWrapper item={item} onClick={(item) => setRubricModal({show: true, item})} />
                                         </div>
                                     </td>
@@ -356,7 +355,7 @@ const GradingSheet: React.FC<GradingSheetProps> = ({ gradeSheetId, setPage }) =>
                                         {sheet.proponents.map(student => (
                                             <td key={student.id} className="p-3 align-middle">
                                                 <div className="flex items-center justify-center space-x-2">
-                                                    <input type="number" value={grades.individualScores[student.id]?.[item.id] ?? ''} placeholder="0" onChange={e => handleScoreChange(item.id, e.target.value, item.weight, student.id)} disabled={isReadOnly} className="w-20 p-2 border rounded-md text-center disabled:bg-gray-100"/>
+                                                    <input type="number" value={grades.individualScores[student.id]?.[item.id] ?? ''} placeholder="0" onChange={e => handleScoreChange(item.id, e.target.value, item.weight, student.id)} className="w-20 p-2 border rounded-md text-center bg-white disabled:bg-gray-100"/>
                                                     <InfoIconWrapper item={item} studentId={student.id} onClick={(item, studentId) => setRubricModal({show: true, item, studentId})} />
                                                 </div>
                                             </td>
@@ -371,22 +370,20 @@ const GradingSheet: React.FC<GradingSheetProps> = ({ gradeSheetId, setPage }) =>
                 {/* Comments */}
                 <div className="bg-white shadow-lg rounded-lg p-8 mb-8">
                     <h3 className="text-2xl font-bold text-gray-800 mb-4">Comments & Feedback</h3>
-                    <textarea value={grades.comments} onChange={e => setGrades(g => g ? { ...g, comments: e.target.value } : null)} disabled={isReadOnly} rows={6} className="w-full p-3 border rounded-md disabled:bg-gray-100" placeholder="Enter your overall comments for the group here..."/>
+                    <textarea value={grades.comments} onChange={e => setGrades(g => g ? { ...g, comments: e.target.value } : null)} rows={6} className="w-full p-3 border rounded-md bg-white disabled:bg-gray-100" placeholder="Enter your overall comments for the group here..."/>
                 </div>
 
                 {/* Actions */}
-                {!isReadOnly && (
-                    <div className="flex justify-end">
-                        <button 
-                            onClick={handleSubmit} 
-                            disabled={!isFormComplete}
-                            title={!isFormComplete ? "Please fill all scores and add at least two sentences in comments." : "Submit grades for this group"}
-                            className="px-8 py-3 bg-green-700 text-white font-bold rounded-md hover:bg-green-800 disabled:opacity-50 disabled:cursor-not-allowed"
-                        >
-                            Submit Final Grades
-                        </button>
-                    </div>
-                )}
+                <div className="flex justify-end">
+                    <button 
+                        onClick={handleSubmit} 
+                        disabled={!isFormComplete}
+                        title={!isFormComplete ? "Please fill all scores and add at least two sentences in comments." : (grades?.submitted ? "Update submitted grades" : "Submit grades for this group")}
+                        className="px-8 py-3 bg-green-700 text-white font-bold rounded-md hover:bg-green-800 disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                        {grades?.submitted ? 'Update Final Grades' : 'Submit Final Grades'}
+                    </button>
+                </div>
             </>
             )}
             
