@@ -1,11 +1,8 @@
 
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useAppContext } from '../context/AppContext';
-import { UserRole, GradeSheet, Page, GradeSheetStatus, PanelGrades } from '../types';
-
-interface DashboardProps {
-    navigateToGradeSheet: (id: string) => void;
-}
+import { UserRole, GradeSheet, Page, GradeSheetStatus, PanelGrades, Student } from '../types';
+import { TITLE_DEFENSE_RUBRIC, INDIVIDUAL_GRADE_RUBRIC } from '../constants';
 
 const getStatusColor = (status: GradeSheetStatus) => {
     switch (status) {
@@ -22,17 +19,73 @@ const getStatusColor = (status: GradeSheetStatus) => {
     }
 };
 
+const calculatePanelScores = (grades: PanelGrades | undefined, proponents: Student[]) => {
+    if (!grades) {
+        return {
+            titleDefenseWeighted: 0,
+            individualWeighted: proponents.reduce((acc, p) => ({ ...acc, [p.id]: 0 }), {})
+        };
+    }
+    const totalTdWeight = TITLE_DEFENSE_RUBRIC.reduce((sum, item) => sum + item.weight, 0);
+    const totalIgWeight = INDIVIDUAL_GRADE_RUBRIC.reduce((sum, item) => sum + item.weight, 0);
+
+    const tdRaw = TITLE_DEFENSE_RUBRIC.reduce((sum, item) => sum + (grades.titleDefenseScores[item.id] || 0), 0);
+    const titleDefenseWeighted = (tdRaw / totalTdWeight) * 70;
+
+    const individualWeighted = proponents.reduce((acc, p) => {
+        const igRaw = INDIVIDUAL_GRADE_RUBRIC.reduce((sum, item) => sum + (grades.individualScores[p.id]?.[item.id] || 0), 0);
+        acc[p.id] = (igRaw / totalIgWeight) * 30;
+        return acc;
+    }, {} as {[key: string]: number});
+    
+    return { titleDefenseWeighted, individualWeighted };
+};
+
 
 const GradeSheetCard: React.FC<{ sheet: GradeSheet, onView: () => void }> = ({ sheet, onView }) => {
     const { findUserById } = useAppContext();
+
+    const finalRemark = useMemo(() => {
+        if (sheet.status !== GradeSheetStatus.COMPLETED) return null;
+
+        const panel1Scores = calculatePanelScores(sheet.panel1Grades, sheet.proponents);
+        const panel2Scores = calculatePanelScores(sheet.panel2Grades, sheet.proponents);
+        
+        const studentScores = sheet.proponents.map(proponent => {
+            const p1Indiv = panel1Scores.individualWeighted[proponent.id] || 0;
+            const p2Indiv = panel2Scores.individualWeighted[proponent.id] || 0;
+            const p1Total = panel1Scores.titleDefenseWeighted + p1Indiv;
+            const p2Total = panel2Scores.titleDefenseWeighted + p2Indiv;
+            const finalScore = (p1Total + p2Total) / 2;
+            return { finalScore };
+        });
+        
+        const groupFinalScore = studentScores.reduce((sum, s) => sum + s.finalScore, 0) / (studentScores.length || 1);
+
+        return groupFinalScore < 70 ? 'Failed' : 'Passed';
+    }, [sheet]);
+
+    const getRemarkColor = (remark: string | null) => {
+        if (remark === 'Passed') return 'bg-green-100 text-green-800';
+        if (remark === 'Failed') return 'bg-red-100 text-red-800';
+        return '';
+    };
+
     return (
         <div className="bg-white rounded-lg shadow-md hover:shadow-lg transition-shadow duration-300 overflow-hidden">
             <div className="p-5">
                 <div className="flex justify-between items-start">
                     <h3 className="text-lg font-bold text-gray-800">{sheet.groupName}</h3>
-                    <span className={`px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(sheet.status)}`}>
-                        {sheet.status}
-                    </span>
+                    <div className="flex items-center space-x-2 flex-shrink-0">
+                         {finalRemark && (
+                            <span className={`px-2 py-1 text-xs font-semibold rounded-full ${getRemarkColor(finalRemark)}`}>
+                                {finalRemark}
+                            </span>
+                        )}
+                        <span className={`px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(sheet.status)}`}>
+                            {sheet.status}
+                        </span>
+                    </div>
                 </div>
                 <p className="text-base text-gray-800 mt-1 truncate">{sheet.selectedTitle}</p>
                 <div className="mt-4 text-sm text-gray-700">
@@ -245,5 +298,9 @@ const Dashboard: React.FC<DashboardProps> = ({ navigateToGradeSheet }) => {
         </div>
     );
 };
+
+interface DashboardProps {
+    navigateToGradeSheet: (id: string) => void;
+}
 
 export default Dashboard;
