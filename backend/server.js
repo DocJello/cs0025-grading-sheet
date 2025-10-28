@@ -300,35 +300,56 @@ app.put('/api/gradesheets/:id', async (req, res) => {
         const isP2Submitted = newSheet.panel2Grades?.submitted;
         const wasDetailsSet = oldSheet.selectedTitle && oldSheet.selectedTitle !== 'Untitled Project';
         const areDetailsSet = newSheet.selectedTitle && newSheet.selectedTitle !== 'Untitled Project';
+        const wasCompleted = oldSheet.status === 'Completed';
+        const isCompleted = newSheet.status === 'Completed';
 
-        // Get names of panelists
+        // Get names of panelists and list of admins/advisers
         const panel1User = newSheet.panel1Id ? (await client.query('SELECT name FROM users WHERE id = $1', [newSheet.panel1Id])).rows[0] : null;
         const panel2User = newSheet.panel2Id ? (await client.query('SELECT name FROM users WHERE id = $1', [newSheet.panel2Id])).rows[0] : null;
-        
         const adminsAndAdvisers = await client.query("SELECT id FROM users WHERE role = 'Admin' OR role = 'Course Adviser'");
+        
+        // --- Event-based notifications ---
+        
+        // Group is newly completed: Notify everyone involved.
+        if (!wasCompleted && isCompleted) {
+            const msg = `Grading for group "${newSheet.groupName}" is now complete.`;
+            // Notify both panelists
+            if (newSheet.panel1Id) await createNotification(client, newSheet.panel1Id, msg, newSheet.id);
+            if (newSheet.panel2Id) await createNotification(client, newSheet.panel2Id, msg, newSheet.id);
+            
+            // Notify admins and advisers, avoiding duplicate notifications for panelists who are also admins.
+            for (const user of adminsAndAdvisers.rows) {
+                if (user.id !== newSheet.panel1Id && user.id !== newSheet.panel2Id) {
+                    await createNotification(client, user.id, msg, newSheet.id);
+                }
+            }
+        } else {
+            // If not newly completed, send notifications about intermediate steps.
+            // This 'else' prevents sending "Panel X submitted" and "Complete" in the same transaction.
+
+            // Panel 1 just submitted
+            if (!wasP1Submitted && isP1Submitted && panel1User) {
+                const msg = `${panel1User.name} has submitted grades for "${newSheet.groupName}".`;
+                // Only notify the other panelist
+                if (newSheet.panel2Id) {
+                    await createNotification(client, newSheet.panel2Id, msg, newSheet.id);
+                }
+            }
+            
+            // Panel 2 just submitted
+            if (!wasP2Submitted && isP2Submitted && panel2User) {
+                const msg = `${panel2User.name} has submitted grades for "${newSheet.groupName}".`;
+                // Only notify the other panelist
+                if (newSheet.panel1Id) {
+                    await createNotification(client, newSheet.panel1Id, msg, newSheet.id);
+                }
+            }
+        }
 
         // Details were just set by Panel 1
         if (!wasDetailsSet && areDetailsSet && panel1User && panel2User) {
             const msg = `${panel1User.name} finalized details for "${newSheet.groupName}". You can now begin grading.`;
             await createNotification(client, newSheet.panel2Id, msg, newSheet.id);
-        }
-        
-        // Panel 1 submitted
-        if (!wasP1Submitted && isP1Submitted && panel1User) {
-            const msg = `${panel1User.name} has submitted grades for "${newSheet.groupName}".`;
-            // Only notify the other panelist
-            if (newSheet.panel2Id) {
-                await createNotification(client, newSheet.panel2Id, msg, newSheet.id);
-            }
-        }
-        
-        // Panel 2 submitted
-        if (!wasP2Submitted && isP2Submitted && panel2User) {
-            const msg = `${panel2User.name} has submitted grades for "${newSheet.groupName}".`;
-            // Only notify the other panelist
-            if (newSheet.panel1Id) {
-                await createNotification(client, newSheet.panel1Id, msg, newSheet.id);
-            }
         }
 
         // Panel 1 was newly assigned
@@ -343,25 +364,6 @@ app.put('/api/gradesheets/:id', async (req, res) => {
             await createNotification(client, newSheet.panel2Id, msg, newSheet.id);
         }
         
-        // Group is now fully graded
-        const wasCompleted = oldSheet.status === 'Completed';
-        const isCompleted = newSheet.status === 'Completed';
-        if (!wasCompleted && isCompleted) {
-            const msg = `Grading for group "${newSheet.groupName}" is now complete.`;
-            // Notify both panelists
-            if (newSheet.panel1Id) await createNotification(client, newSheet.panel1Id, msg, newSheet.id);
-            if (newSheet.panel2Id) await createNotification(client, newSheet.panel2Id, msg, newSheet.id);
-            
-            // Also notify admins and advisers of completion
-            for (const user of adminsAndAdvisers.rows) {
-                // Don't notify panelists twice if they are also admins/advisers
-                if (user.id !== newSheet.panel1Id && user.id !== newSheet.panel2Id) {
-                    await createNotification(client, user.id, msg, newSheet.id);
-                }
-            }
-        }
-
-
         await client.query('COMMIT');
         res.json(newSheet);
     } catch (err) {
