@@ -62,7 +62,7 @@ export const ToastContainer: React.FC<ToastContainerProps> = ({ toasts, dismissT
         <div
             aria-live="polite"
             aria-atomic="true"
-            className="fixed inset-0 pointer-events-none p-6 flex items-end justify-end z-50"
+            className="fixed bottom-0 right-0 p-6 pointer-events-none z-50"
         >
             <div className="w-full max-w-sm space-y-4">
                 {toasts.map(toast => (
