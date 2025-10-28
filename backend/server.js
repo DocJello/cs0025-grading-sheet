@@ -307,8 +307,6 @@ app.put('/api/gradesheets/:id', async (req, res) => {
         
         const adminsAndAdvisers = await client.query("SELECT id FROM users WHERE role = 'Admin' OR role = 'Course Adviser'");
 
-        // --- Existing Notification Events ---
-
         // Details were just set by Panel 1
         if (!wasDetailsSet && areDetailsSet && panel1User && panel2User) {
             const msg = `${panel1User.name} finalized details for "${newSheet.groupName}". You can now begin grading.`;
@@ -318,18 +316,20 @@ app.put('/api/gradesheets/:id', async (req, res) => {
         // Panel 1 submitted
         if (!wasP1Submitted && isP1Submitted && panel1User) {
             const msg = `${panel1User.name} has submitted grades for "${newSheet.groupName}".`;
-            if(newSheet.panel2Id) await createNotification(client, newSheet.panel2Id, msg, newSheet.id);
-            for (const user of adminsAndAdvisers.rows) { await createNotification(client, user.id, msg, newSheet.id); }
+            // Only notify the other panelist
+            if (newSheet.panel2Id) {
+                await createNotification(client, newSheet.panel2Id, msg, newSheet.id);
+            }
         }
         
         // Panel 2 submitted
         if (!wasP2Submitted && isP2Submitted && panel2User) {
             const msg = `${panel2User.name} has submitted grades for "${newSheet.groupName}".`;
-            if (newSheet.panel1Id) await createNotification(client, newSheet.panel1Id, msg, newSheet.id);
-            for (const user of adminsAndAdvisers.rows) { await createNotification(client, user.id, msg, newSheet.id); }
+            // Only notify the other panelist
+            if (newSheet.panel1Id) {
+                await createNotification(client, newSheet.panel1Id, msg, newSheet.id);
+            }
         }
-
-        // --- New Notification Events ---
 
         // Panel 1 was newly assigned
         if (oldSheet.panel1Id !== newSheet.panel1Id && newSheet.panel1Id) {
@@ -351,6 +351,14 @@ app.put('/api/gradesheets/:id', async (req, res) => {
             // Notify both panelists
             if (newSheet.panel1Id) await createNotification(client, newSheet.panel1Id, msg, newSheet.id);
             if (newSheet.panel2Id) await createNotification(client, newSheet.panel2Id, msg, newSheet.id);
+            
+            // Also notify admins and advisers of completion
+            for (const user of adminsAndAdvisers.rows) {
+                // Don't notify panelists twice if they are also admins/advisers
+                if (user.id !== newSheet.panel1Id && user.id !== newSheet.panel2Id) {
+                    await createNotification(client, user.id, msg, newSheet.id);
+                }
+            }
         }
 
 
