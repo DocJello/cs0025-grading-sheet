@@ -331,13 +331,13 @@ const Masterlist: React.FC = () => {
                                         {index === 0 && (
                                             <td rowSpan={group.proponents.length} className="px-4 py-4 align-top font-medium text-black border-r">{group.groupName}</td>
                                         )}
-                                        <td className="px-4 py-2 text-black border-r">{student.name}</td>
+                                        <td className="px-4 py-2 text-black border-r text-sm">{student.name}</td>
                                         
                                         {index === 0 && (
                                             <td rowSpan={group.proponents.length} className="px-4 py-4 align-top border-r">
                                                 <div className="space-y-2 no-print">
                                                     <div>
-                                                        <label className="block text-xs font-semibold text-gray-600 mb-1">Panel 1</label>
+                                                        <label className="block text-sm font-semibold text-gray-600 mb-1">Panel 1</label>
                                                         <select
                                                             value={group.panel1Id}
                                                             onChange={(e) => handlePanelChange(group.id, 'panel1Id', e.target.value)}
@@ -351,7 +351,7 @@ const Masterlist: React.FC = () => {
                                                         </select>
                                                     </div>
                                                     <div>
-                                                        <label className="block text-xs font-semibold text-gray-600 mb-1">Panel 2</label>
+                                                        <label className="block text-sm font-semibold text-gray-600 mb-1">Panel 2</label>
                                                         <select
                                                             value={group.panel2Id}
                                                             onChange={(e) => handlePanelChange(group.id, 'panel2Id', e.target.value)}
