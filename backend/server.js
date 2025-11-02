@@ -366,14 +366,14 @@ app.delete('/api/gradesheets/all', async (req, res) => {
     const client = await pool.connect();
     try {
         await client.query('BEGIN');
-        // This command permanently deletes all data from both grade_sheets and notifications,
-        // resetting any auto-incrementing counters. It operates within a transaction.
-        // This is the correct and efficient way to clear the tables without affecting the users table.
-        await client.query('TRUNCATE TABLE grade_sheets, notifications RESTART IDENTITY');
+        // FIX: Replaced TRUNCATE with DELETE for more reliable execution in some environments.
+        // This ensures the data is permanently removed as requested by the user.
+        await client.query('DELETE FROM notifications');
+        await client.query('DELETE FROM grade_sheets');
         await client.query('COMMIT');
         res.status(204).send();
     } catch (err) {
-        console.error('Error truncating tables:', err.stack);
+        console.error('Error deleting all grade sheets:', err.stack);
         await client.query('ROLLBACK');
         res.status(500).json({ error: `Failed to delete all grade sheets: ${err.message}` });
     } finally {
