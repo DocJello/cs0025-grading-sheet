@@ -137,8 +137,7 @@ const Masterlist: React.FC = () => {
                     <tr>
                         <th rowspan="2" style="padding: 8px; border: 1px solid #ddd;">GROUP NAME</th>
                         <th rowspan="2" style="padding: 8px; border: 1px solid #ddd;">PROPONENTS</th>
-                        <th rowspan="2" style="padding: 8px; border: 1px solid #ddd;">ASSIGN PANEL 1</th>
-                        <th rowspan="2" style="padding: 8px; border: 1px solid #ddd;">ASSIGN PANEL 2</th>
+                        <th rowspan="2" style="padding: 8px; border: 1px solid #ddd;">ASSIGN PANEL</th>
                         <th colspan="2" style="padding: 8px; border: 1px solid #ddd;">PANEL 1 (50%)</th>
                         <th colspan="2" style="padding: 8px; border: 1px solid #ddd;">PANEL 2 (50%)</th>
                         <th rowspan="2" style="padding: 8px; border: 1px solid #ddd;">TOTAL</th>
@@ -166,8 +165,10 @@ const Masterlist: React.FC = () => {
                 }
                 tableHtml += `<td style="padding: 8px;">${student.name}</td>`;
                 if (index === 0) {
-                    tableHtml += `<td rowspan="${numProponents}" style="padding: 8px; vertical-align: middle;">${panel1Name}</td>`;
-                    tableHtml += `<td rowspan="${numProponents}" style="padding: 8px; vertical-align: middle;">${panel2Name}</td>`;
+                    tableHtml += `<td rowspan="${numProponents}" style="padding: 8px; vertical-align: middle;">
+                        Panel 1: ${panel1Name}<br>
+                        Panel 2: ${panel2Name}
+                    </td>`;
                     tableHtml += `<td rowspan="${numProponents}" style="padding: 8px; text-align: center; vertical-align: middle;">${student.p1Title > 0 ? student.p1Title.toFixed(2) : '0.00'}</td>`;
                 }
                 tableHtml += `<td style="padding: 8px; text-align: center;">${student.p1Indiv > 0 ? student.p1Indiv.toFixed(2) : '0.00'}</td>`;
@@ -232,8 +233,7 @@ const Masterlist: React.FC = () => {
         const headers = [
             'Group Name', 
             'Proponent', 
-            'Assigned Panel 1', 
-            'Assigned Panel 2', 
+            'Assigned Panels', 
             'Panel 1 Title Defense (70%)', 
             'Panel 1 Individual (30%)', 
             'Panel 2 Title Defense (70%)', 
@@ -247,13 +247,13 @@ const Masterlist: React.FC = () => {
         masterlistData.forEach(group => {
             const panel1Name = findUserById(group.panel1Id)?.name || 'N/A';
             const panel2Name = findUserById(group.panel2Id)?.name || 'N/A';
-    
+            const panelInfo = `Panel 1: ${panel1Name.replace(/"/g, '""')}; Panel 2: ${panel2Name.replace(/"/g, '""')}`;
+
             group.studentScores.forEach(student => {
                 const row = [
                     `"${group.groupName.replace(/"/g, '""')}"`,
                     `"${student.name.replace(/"/g, '""')}"`,
-                    `"${panel1Name.replace(/"/g, '""')}"`,
-                    `"${panel2Name.replace(/"/g, '""')}"`,
+                    `"${panelInfo}"`,
                     student.p1Title > 0 ? student.p1Title.toFixed(2) : '0.00',
                     student.p1Indiv > 0 ? student.p1Indiv.toFixed(2) : '0.00',
                     student.p2Title > 0 ? student.p2Title.toFixed(2) : '0.00',
@@ -310,8 +310,7 @@ const Masterlist: React.FC = () => {
                         <tr>
                             <th rowSpan={2} className="px-4 py-3 text-left font-semibold uppercase tracking-wider">Group Name</th>
                             <th rowSpan={2} className="px-4 py-3 text-left font-semibold uppercase tracking-wider">Proponents</th>
-                            <th rowSpan={2} className="px-4 py-3 text-left font-semibold uppercase tracking-wider border-l border-green-800">Assign Panel 1</th>
-                            <th rowSpan={2} className="px-4 py-3 text-left font-semibold uppercase tracking-wider border-l border-green-800">Assign Panel 2</th>
+                            <th rowSpan={2} className="px-4 py-3 text-left font-semibold uppercase tracking-wider border-l border-green-800">Assign Panel</th>
                             <th colSpan={2} className="px-4 py-3 text-center font-semibold uppercase tracking-wider border-l border-green-800">Panel 1 (50%)</th>
                             <th colSpan={2} className="px-4 py-3 text-center font-semibold uppercase tracking-wider border-l border-green-800">Panel 2 (50%)</th>
                             <th rowSpan={2} className="px-4 py-3 text-center font-semibold uppercase tracking-wider border-l border-green-800">Total</th>
@@ -335,36 +334,42 @@ const Masterlist: React.FC = () => {
                                         <td className="px-4 py-2 text-black border-r">{student.name}</td>
                                         
                                         {index === 0 && (
-                                            <>
-                                                <td rowSpan={group.proponents.length} className="px-4 py-4 align-middle border-r">
-                                                    <select
-                                                        value={group.panel1Id}
-                                                        onChange={(e) => handlePanelChange(group.id, 'panel1Id', e.target.value)}
-                                                        className="w-full p-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-green-500 focus:border-green-500 no-print"
-                                                        aria-label={`Assign Panel 1 for ${group.groupName}`}
-                                                    >
-                                                        <option value="" disabled>-- Select --</option>
-                                                        {panelOptions.map(opt => (
-                                                            <option key={opt.id} value={opt.id}>{opt.name}</option>
-                                                        ))}
-                                                    </select>
-                                                    <span className="print-only">{findUserById(group.panel1Id)?.name || 'N/A'}</span>
-                                                </td>
-                                                <td rowSpan={group.proponents.length} className="px-4 py-4 align-middle border-r">
-                                                    <select
-                                                        value={group.panel2Id}
-                                                        onChange={(e) => handlePanelChange(group.id, 'panel2Id', e.target.value)}
-                                                        className="w-full p-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-green-500 focus:border-green-500 no-print"
-                                                        aria-label={`Assign Panel 2 for ${group.groupName}`}
-                                                    >
-                                                        <option value="" disabled>-- Select --</option>
-                                                        {panelOptions.map(opt => (
-                                                            <option key={opt.id} value={opt.id}>{opt.name}</option>
-                                                        ))}
-                                                    </select>
-                                                     <span className="print-only">{findUserById(group.panel2Id)?.name || 'N/A'}</span>
-                                                </td>
-                                            </>
+                                            <td rowSpan={group.proponents.length} className="px-4 py-4 align-top border-r">
+                                                <div className="space-y-2 no-print">
+                                                    <div>
+                                                        <label className="block text-xs font-semibold text-gray-600 mb-1">Panel 1</label>
+                                                        <select
+                                                            value={group.panel1Id}
+                                                            onChange={(e) => handlePanelChange(group.id, 'panel1Id', e.target.value)}
+                                                            className="w-full p-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-green-500 focus:border-green-500"
+                                                            aria-label={`Assign Panel 1 for ${group.groupName}`}
+                                                        >
+                                                            <option value="" disabled>-- Select --</option>
+                                                            {panelOptions.map(opt => (
+                                                                <option key={opt.id} value={opt.id}>{opt.name}</option>
+                                                            ))}
+                                                        </select>
+                                                    </div>
+                                                    <div>
+                                                        <label className="block text-xs font-semibold text-gray-600 mb-1">Panel 2</label>
+                                                        <select
+                                                            value={group.panel2Id}
+                                                            onChange={(e) => handlePanelChange(group.id, 'panel2Id', e.target.value)}
+                                                            className="w-full p-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-green-500 focus:border-green-500"
+                                                            aria-label={`Assign Panel 2 for ${group.groupName}`}
+                                                        >
+                                                            <option value="" disabled>-- Select --</option>
+                                                            {panelOptions.map(opt => (
+                                                                <option key={opt.id} value={opt.id}>{opt.name}</option>
+                                                            ))}
+                                                        </select>
+                                                    </div>
+                                                </div>
+                                                <div className="print-only">
+                                                    <p><b>Panel 1:</b> {findUserById(group.panel1Id)?.name || 'N/A'}</p>
+                                                    <p><b>Panel 2:</b> {findUserById(group.panel2Id)?.name || 'N/A'}</p>
+                                                </div>
+                                            </td>
                                         )}
 
                                         {/* Panel 1 */}
