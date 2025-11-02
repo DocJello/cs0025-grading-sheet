@@ -75,14 +75,16 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
                 const newNotifications = fetchedNotifications.filter(n => !existingIds.has(n.id));
 
                 if (newNotifications.length > 0) {
-                    // Also prevent showing toasts that have been shown in this session
-                    const shownToastIds = new Set(JSON.parse(sessionStorage.getItem('shownToastIds') || '[]'));
+                    // FIX: Use persistent localStorage with a user-specific key to track shown toasts.
+                    // This prevents old notifications from reappearing as toasts on subsequent logins.
+                    const storageKey = `shownToastIds_${userId}`;
+                    const shownToastIds = new Set(JSON.parse(localStorage.getItem(storageKey) || '[]'));
                     const notificationsForToast = newNotifications.filter(n => !shownToastIds.has(n.id));
 
                     if (notificationsForToast.length > 0) {
                         setToasts(currentToasts => [...currentToasts, ...notificationsForToast.map(n => ({ id: n.id, message: n.message }))]);
                         notificationsForToast.forEach(n => shownToastIds.add(n.id));
-                        sessionStorage.setItem('shownToastIds', JSON.stringify(Array.from(shownToastIds)));
+                        localStorage.setItem(storageKey, JSON.stringify(Array.from(shownToastIds)));
                     }
                     
                     const sheetIdsToUpdate = [...new Set(newNotifications.map(n => n.grade_sheet_id).filter(Boolean))] as string[];
@@ -124,7 +126,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         try {
             const user = await api.login(email, pass);
             setCurrentUser(user);
-            sessionStorage.removeItem('shownToastIds');
+            // FIX: Removed the line that cleared shown toast history on login.
             // After login, refresh data
             const [loadedUsers, loadedSheets] = await Promise.all([
                 api.getUsers(),
@@ -145,7 +147,6 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         setGradeSheets([]);
         setNotifications([]);
         setToasts([]);
-        sessionStorage.removeItem('shownToastIds');
         if (pollIntervalRef.current) {
             clearInterval(pollIntervalRef.current);
         }
