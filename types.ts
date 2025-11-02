@@ -1,4 +1,3 @@
-
 // FIX: Full content for types.ts
 export enum UserRole {
     ADMIN = 'Admin',
@@ -62,7 +61,7 @@ export interface GradeSheet {
     status: GradeSheetStatus;
 }
 
-export type Page = 'dashboard' | 'grading-sheet' | 'user-management' | 'masterlist' | 'group-management' | 'change-password';
+export type Page = 'dashboard' | 'grading-sheet' | 'user-management' | 'masterlist' | 'group-management' | 'change-password' | 'maintenance';
 
 // Types for the new notification system
 export interface Notification {
