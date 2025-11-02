@@ -178,6 +178,16 @@ app.delete('/api/users/:id', async (req, res) => {
     }
 });
 
+app.delete('/api/users/all-non-admin', async (req, res) => {
+    try {
+        // Deletes all users who are not 'Admin'
+        await pool.query("DELETE FROM users WHERE role != 'Admin'");
+        res.status(204).send();
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
 app.post('/api/users/:id/change-password', async (req, res) => {
     const { id } = req.params;
     const { oldPassword, newPassword } = req.body;
@@ -366,9 +376,10 @@ app.delete('/api/gradesheets/all', async (req, res) => {
     const client = await pool.connect();
     try {
         await client.query('BEGIN');
-        // TRUNCATE is faster and resets any auto-incrementing counters.
-        // We truncate both tables to ensure all related data (including notifications) is removed.
-        await client.query('TRUNCATE TABLE grade_sheets, notifications RESTART IDENTITY');
+        // Truncate dependent table first, then the main table.
+        // This ensures all data is permanently removed and fixes the reported bug.
+        await client.query('TRUNCATE TABLE notifications RESTART IDENTITY');
+        await client.query('TRUNCATE TABLE grade_sheets RESTART IDENTITY');
         await client.query('COMMIT');
         res.status(204).send();
     } catch (err) {
@@ -377,6 +388,21 @@ app.delete('/api/gradesheets/all', async (req, res) => {
         res.status(500).json({ error: `Failed to delete all grade sheets: ${err.message}` });
     } finally {
         client.release();
+    }
+});
+
+app.post('/api/gradesheets/reset-all', async (req, res) => {
+    try {
+        // This sets grades to null and status to Not Started for all sheets
+        await pool.query(
+            `UPDATE grade_sheets SET 
+                "panel1Grades" = NULL, 
+                "panel2Grades" = NULL,
+                status = 'Not Started'`
+        );
+        res.status(200).json({ message: 'All grades have been reset.' });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
     }
 });
 
