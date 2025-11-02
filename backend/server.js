@@ -178,16 +178,6 @@ app.delete('/api/users/:id', async (req, res) => {
     }
 });
 
-app.delete('/api/users/all-non-admin', async (req, res) => {
-    try {
-        // Deletes all users who are not 'Admin'
-        await pool.query("DELETE FROM users WHERE role != 'Admin'");
-        res.status(204).send();
-    } catch (err) {
-        res.status(500).json({ error: err.message });
-    }
-});
-
 app.post('/api/users/:id/change-password', async (req, res) => {
     const { id } = req.params;
     const { oldPassword, newPassword } = req.body;
@@ -376,10 +366,10 @@ app.delete('/api/gradesheets/all', async (req, res) => {
     const client = await pool.connect();
     try {
         await client.query('BEGIN');
-        // Truncate dependent table first, then the main table.
-        // This ensures all data is permanently removed and fixes the reported bug.
-        await client.query('TRUNCATE TABLE notifications RESTART IDENTITY');
-        await client.query('TRUNCATE TABLE grade_sheets RESTART IDENTITY');
+        // This command permanently deletes all data from both grade_sheets and notifications,
+        // resetting any auto-incrementing counters. It operates within a transaction.
+        // This is the correct and efficient way to clear the tables without affecting the users table.
+        await client.query('TRUNCATE TABLE grade_sheets, notifications RESTART IDENTITY');
         await client.query('COMMIT');
         res.status(204).send();
     } catch (err) {
