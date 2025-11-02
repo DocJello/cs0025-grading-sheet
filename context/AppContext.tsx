@@ -22,7 +22,6 @@ interface AppContextType {
     addUser: (userData: Omit<User, 'id'>) => Promise<void>;
     updateUser: (user: User) => Promise<void>;
     deleteUser: (userId: string) => Promise<void>;
-    deleteAllNonAdminUsers: () => Promise<void>;
     changePassword: (oldPass: string, newPass: string) => Promise<boolean>;
     addVenue: (venue: string) => void;
     restoreData: (backupData: { users: User[], gradeSheets: GradeSheet[] }) => Promise<void>;
@@ -226,12 +225,6 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         setUsers(prev => prev.filter(u => u.id !== userId));
     };
 
-    const deleteAllNonAdminUsers = async () => {
-        await api.deleteAllNonAdminUsers();
-        const reloadedUsers = await api.getUsers();
-        setUsers(reloadedUsers);
-    };
-
     const changePassword = async (oldPass: string, newPass: string): Promise<boolean> => {
         if (!currentUser) return false;
         try {
@@ -295,7 +288,6 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         addUser,
         updateUser,
         deleteUser,
-        deleteAllNonAdminUsers,
         changePassword,
         addVenue,
         restoreData,
