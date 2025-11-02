@@ -1,4 +1,3 @@
-
 import React, { createContext, useState, useContext, ReactNode, useEffect, useRef } from 'react';
 import { User, GradeSheet, GradeSheetStatus, Notification, ToastMessage, UserRole } from '../types';
 // FIX: Removed API_URL import as it's no longer used in this file.
@@ -19,9 +18,11 @@ interface AppContextType {
     addGradeSheet: (sheetData: Omit<GradeSheet, 'id' | 'status'>) => Promise<void>;
     deleteGradeSheet: (sheetId: string) => Promise<void>;
     deleteAllGradeSheets: () => Promise<void>;
+    resetAllGrades: () => Promise<void>;
     addUser: (userData: Omit<User, 'id'>) => Promise<void>;
     updateUser: (user: User) => Promise<void>;
     deleteUser: (userId: string) => Promise<void>;
+    deleteAllNonAdminUsers: () => Promise<void>;
     changePassword: (oldPass: string, newPass: string) => Promise<boolean>;
     addVenue: (venue: string) => void;
     restoreData: (backupData: { users: User[], gradeSheets: GradeSheet[] }) => Promise<void>;
@@ -201,6 +202,12 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         setGradeSheets([]);
     };
 
+    const resetAllGrades = async () => {
+        await api.resetAllGrades();
+        const reloadedSheets = await api.getGradeSheets();
+        setGradeSheets(reloadedSheets);
+    };
+
     const addUser = async (userData: Omit<User, 'id'>) => {
         const newUser = await api.addUser(userData);
         setUsers(prev => [...prev, newUser]);
@@ -217,6 +224,12 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     const deleteUser = async (userId: string) => {
         await api.deleteUser(userId);
         setUsers(prev => prev.filter(u => u.id !== userId));
+    };
+
+    const deleteAllNonAdminUsers = async () => {
+        await api.deleteAllNonAdminUsers();
+        const reloadedUsers = await api.getUsers();
+        setUsers(reloadedUsers);
     };
 
     const changePassword = async (oldPass: string, newPass: string): Promise<boolean> => {
@@ -278,9 +291,11 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         addGradeSheet,
         deleteGradeSheet,
         deleteAllGradeSheets,
+        resetAllGrades,
         addUser,
         updateUser,
         deleteUser,
+        deleteAllNonAdminUsers,
         changePassword,
         addVenue,
         restoreData,
