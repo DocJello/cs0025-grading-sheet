@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useAppContext } from '../context/AppContext';
 
 const Maintenance: React.FC = () => {
-    const { users, gradeSheets, restoreData, resetAllGrades, deleteAllGradeSheets, deleteAllNonAdminUsers } = useAppContext();
+    const { users, gradeSheets, restoreData, resetAllGrades, deleteAllGradeSheets } = useAppContext();
     const [restoreFile, setRestoreFile] = useState<File | null>(null);
     const [showModal, setShowModal] = useState<string | null>(null);
     const [confirmationText, setConfirmationText] = useState('');
@@ -18,21 +18,12 @@ const Maintenance: React.FC = () => {
             }
         },
         deleteGroups: {
-            title: 'Confirm Permanent Deletion',
-            description: "Permanently delete ALL groups, proponents, panel assignments, and submitted grades from the system. This action cannot be undone.",
-            prompt: 'DELETE GROUPS',
+            title: 'Confirm Delete All Groups',
+            description: "Permanently delete ALL groups, proponents, panel assignments, and submitted grades from the system. User accounts will NOT be affected. This action cannot be undone.",
+            prompt: 'DELETE ALL GROUPS',
             action: async () => {
                 await deleteAllGradeSheets();
                 alert('All groups and grade sheets have been successfully deleted.');
-            }
-        },
-        deleteUsers: {
-            title: 'Confirm Permanent Deletion',
-            description: "Permanently delete ALL users with the role 'Course Adviser' or 'Panel'. Administrator accounts will NOT be affected. This action cannot be undone.",
-            prompt: 'DELETE USERS',
-            action: async () => {
-                await deleteAllNonAdminUsers();
-                alert('All non-admin users have been successfully deleted.');
             }
         }
     };
@@ -145,7 +136,7 @@ const Maintenance: React.FC = () => {
                 <div className="border-2 border-red-500 rounded-lg p-6">
                     <h3 className="text-2xl font-bold text-red-700 mb-4">Danger Zone</h3>
                     
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         {/* Reset Grades */}
                         <div className="bg-red-50 border-l-4 border-red-500 p-4 rounded-md">
                             <h4 className="text-lg font-bold text-red-800">Reset All Grades</h4>
@@ -159,23 +150,12 @@ const Maintenance: React.FC = () => {
 
                         {/* Delete All Groups */}
                         <div className="bg-red-50 border-l-4 border-red-500 p-4 rounded-md">
-                            <h4 className="text-lg font-bold text-red-800">Delete All Groups & Grades</h4>
+                            <h4 className="text-lg font-bold text-red-800">Delete All Groups</h4>
                             <p className="text-sm text-red-900 mt-2 mb-4">
-                                Permanently deletes all group data, including proponents, grades, and assignments.
+                                Permanently deletes all group data, including proponents, grades, and assignments. User accounts are not affected.
                             </p>
                             <button onClick={() => setShowModal('deleteGroups')} className="w-full px-4 py-2 bg-red-700 text-white font-medium rounded-md hover:bg-red-800">
                                 Delete All Groups...
-                            </button>
-                        </div>
-                        
-                        {/* Delete All Users */}
-                        <div className="bg-red-50 border-l-4 border-red-500 p-4 rounded-md">
-                            <h4 className="text-lg font-bold text-red-800">Delete All Non-Admin Users</h4>
-                            <p className="text-sm text-red-900 mt-2 mb-4">
-                                Permanently deletes all Course Adviser and Panel accounts. Admin accounts are not affected.
-                            </p>
-                            <button onClick={() => setShowModal('deleteUsers')} className="w-full px-4 py-2 bg-red-700 text-white font-medium rounded-md hover:bg-red-800">
-                                Delete All Users...
                             </button>
                         </div>
                     </div>
