@@ -363,21 +363,15 @@ app.delete('/api/gradesheets/:id', async (req, res) => {
 });
 
 app.delete('/api/gradesheets/all', async (req, res) => {
-    const client = await pool.connect();
     try {
-        await client.query('BEGIN');
-        // FIX: Replaced TRUNCATE with DELETE for more reliable execution in some environments.
-        // This ensures the data is permanently removed as requested by the user.
-        await client.query('DELETE FROM notifications');
-        await client.query('DELETE FROM grade_sheets');
-        await client.query('COMMIT');
+        // FIX: Replaced the failing transaction block with two separate, direct DELETE queries.
+        // This mirrors the working single-delete method and ensures permanent data removal.
+        await pool.query('DELETE FROM notifications');
+        await pool.query('DELETE FROM grade_sheets');
         res.status(204).send();
     } catch (err) {
         console.error('Error deleting all grade sheets:', err.stack);
-        await client.query('ROLLBACK');
         res.status(500).json({ error: `Failed to delete all grade sheets: ${err.message}` });
-    } finally {
-        client.release();
     }
 });
 
