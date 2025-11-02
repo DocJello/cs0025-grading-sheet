@@ -102,6 +102,9 @@ const UserManagement: React.FC = () => {
 
     const isSuperAdmin = currentUser?.role === UserRole.ADMIN;
 
+    // FIX: Filter out admin users if the current user is not an admin.
+    const displayUsers = isSuperAdmin ? users : users.filter(user => user.role !== UserRole.ADMIN);
+
     const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
         const file = event.target.files?.[0];
         if (!file) return;
@@ -232,8 +235,8 @@ const UserManagement: React.FC = () => {
                                 </tr>
                             </thead>
                             <tbody className="bg-white divide-y divide-gray-200">
-                                {users.length > 0 ? (
-                                    users.map(user => (
+                                {displayUsers.length > 0 ? (
+                                    displayUsers.map(user => (
                                         <tr key={user.id}>
                                             <td className="px-6 py-4 whitespace-nowrap text-base font-medium text-black">{user.name}</td>
                                             <td className="px-6 py-4 whitespace-nowrap text-base text-black">{user.email}</td>
