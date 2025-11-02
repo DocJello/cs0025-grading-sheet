@@ -15,36 +15,11 @@ const pool = new Pool({
 
 // --- CORS Configuration ---
 // This allows your Vercel frontend to communicate with this backend.
-const corsOptions = {
-    origin: (origin, callback) => {
-        // Regex to match all possible Vercel deployment URLs for this project
-        // e.g. https://cs0025-grading-sheet.vercel.app
-        // e.g. https://cs0025-grading-sheet-git-main-....vercel.app
-        const vercelRegex = /^https:\/\/cs0025-grading-sheet.*\.vercel\.app$/;
-
-        // Allow requests with no origin (like server-to-server or REST tools)
-        if (!origin) {
-            return callback(null, true);
-        }
-
-        // Allow the specific frontend URL from environment variables, if set.
-        if (process.env.FRONTEND_URL && origin === process.env.FRONTEND_URL) {
-            return callback(null, true);
-        }
-        
-        // Allow if the origin matches the Vercel deployment URL pattern.
-        if (vercelRegex.test(origin)) {
-            return callback(null, true);
-        }
-        
-        console.error(`CORS Error: Request from origin '${origin}' blocked.`);
-        return callback(new Error('Not allowed by CORS'));
-    },
-    methods: ['GET', 'POST', 'PUT', 'DELETE'],
-    allowedHeaders: ['Content-Type']
-};
-
-app.use(cors(corsOptions));
+// FIX: Replaced restrictive CORS policy with a more open one to allow
+// local development and fix "Failed to fetch" errors. For a production
+// environment, this should be configured to only allow requests from
+// the specific frontend domain.
+app.use(cors());
 app.use(express.json({ limit: '10mb' })); // Increase payload limit for backups
 
 
