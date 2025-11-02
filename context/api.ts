@@ -3,6 +3,7 @@ import { User, GradeSheet, GradeSheetStatus, Notification } from '../types';
 export const API_URL = 'https://cs0025-grading-sheet.onrender.com';
 // =====================================================================================
 
+
 const CURRENT_USER_KEY = 'currentUser'; // We still use localStorage for the logged-in user session
 
 // Helper to handle API responses
@@ -73,10 +74,6 @@ export const api = {
 
     deleteUser: async (userId: string): Promise<void> => {
         return apiFetch(`/api/users/${userId}`, { method: 'DELETE' });
-    },
-
-    deleteAllNonAdminUsers: async (): Promise<void> => {
-        return apiFetch('/api/users/all-non-admin', { method: 'DELETE' });
     },
 
     changePassword: async (userId: string, oldPass: string, newPass: string): Promise<User> => {
