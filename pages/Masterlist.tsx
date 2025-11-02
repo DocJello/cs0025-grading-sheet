@@ -309,7 +309,7 @@ const Masterlist: React.FC = () => {
                         <tr>
                             <th rowSpan={2} className="px-4 py-3 text-left font-semibold uppercase tracking-wider">Group Name</th>
                             <th rowSpan={2} className="px-4 py-3 text-left font-semibold uppercase tracking-wider">Proponents</th>
-                            <th rowSpan={2} className="px-4 py-3 text-left font-semibold uppercase tracking-wider border-l border-green-800 w-72">Assign Panel</th>
+                            <th rowSpan={2} className="px-4 py-3 text-center font-semibold uppercase tracking-wider border-l border-green-800 w-72">Assign Panel</th>
                             <th colSpan={2} className="px-4 py-3 text-center font-semibold uppercase tracking-wider border-l border-green-800">Panel 1 (50%)</th>
                             <th colSpan={2} className="px-4 py-3 text-center font-semibold uppercase tracking-wider border-l border-green-800">Panel 2 (50%)</th>
                             <th rowSpan={2} className="px-4 py-3 text-center font-semibold uppercase tracking-wider border-l border-green-800 w-32">Total</th>
