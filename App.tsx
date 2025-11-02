@@ -15,7 +15,7 @@ import GroupManagement from './pages/GroupManagement';
 import { ToastContainer } from './components/Toast';
 
 // Import icons for sidebar
-import { DashboardIcon, UsersIcon, ListIcon, DocumentAddIcon, KeyIcon } from './components/Icons';
+import { DashboardIcon, UsersIcon, ListIcon, DocumentAddIcon, KeyIcon, LogoutIcon } from './components/Icons';
 import Header from './components/Header';
 import Footer from './components/Footer';
 
@@ -48,7 +48,7 @@ const Sidebar: React.FC<{
     setPage: (page: Page) => void;
     closeSidebar: () => void;
 }> = ({ currentPage, setPage, closeSidebar }) => {
-    const { currentUser } = useAppContext();
+    const { currentUser, logout } = useAppContext();
     const isAdmin = currentUser?.role === UserRole.ADMIN;
     const isAdviser = currentUser?.role === UserRole.COURSE_ADVISER;
 
@@ -93,7 +93,7 @@ const Sidebar: React.FC<{
                     </div>
                 )}
             </nav>
-            <div className="mt-auto">
+            <div className="mt-auto space-y-2">
                  <NavLink
                     icon={<KeyIcon className="w-6 h-6" />}
                     label="Change Password"
@@ -101,6 +101,13 @@ const Sidebar: React.FC<{
                     onClick={() => setPage('change-password')}
                     closeSidebar={closeSidebar}
                 />
+                <button
+                    onClick={logout}
+                    className="w-full flex items-center px-4 py-3 text-sm font-medium rounded-lg transition-colors duration-200 text-gray-200 hover:bg-green-600 hover:text-white"
+                >
+                    <LogoutIcon className="w-6 h-6" />
+                    <span className="ml-3">Logout</span>
+                </button>
             </div>
         </aside>
     );
