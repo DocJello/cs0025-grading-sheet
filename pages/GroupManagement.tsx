@@ -199,14 +199,16 @@ const GroupManagement: React.FC<GroupManagementProps> = ({ setPage }) => {
                 const row: any[] = json[i] as any[];
                 if (!row.some(cell => cell)) continue; // Skip empty rows
 
-                const groupName = row[groupNameIndex];
-                if (!groupName) {
+                const groupNameCell = row[groupNameIndex];
+                if (!groupNameCell) {
                     errors.push(`Row ${i + 1}: Skipped because Group Name is empty.`);
                     continue;
                 }
                 
+                const groupName = String(groupNameCell).trim();
+
                 // 1. Check for duplicate group name (case-insensitive)
-                if (existingGroupNames.has(groupName.trim().toLowerCase())) {
+                if (existingGroupNames.has(groupName.toLowerCase())) {
                      errors.push(`Row ${i + 1}: Skipped because group "${groupName}" already exists.`);
                     continue;
                 }
@@ -249,7 +251,7 @@ const GroupManagement: React.FC<GroupManagementProps> = ({ setPage }) => {
                 addedCount++;
                 
                 // Add the newly added group and students to our sets for checks within the same file
-                existingGroupNames.add(groupName.trim().toLowerCase());
+                existingGroupNames.add(groupName.toLowerCase());
                 proponents.forEach(p => allExistingStudents.add(p.toLowerCase()));
             }
             
