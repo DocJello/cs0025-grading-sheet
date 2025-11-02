@@ -363,13 +363,20 @@ app.delete('/api/gradesheets/:id', async (req, res) => {
 });
 
 app.delete('/api/gradesheets/all', async (req, res) => {
+    const client = await pool.connect();
     try {
-        // TRUNCATE is faster and resets any auto-incrementing counters if they existed.
-        await pool.query('TRUNCATE TABLE grade_sheets RESTART IDENTITY');
+        await client.query('BEGIN');
+        // TRUNCATE is faster and resets any auto-incrementing counters.
+        // We truncate both tables to ensure all related data (including notifications) is removed.
+        await client.query('TRUNCATE TABLE grade_sheets, notifications RESTART IDENTITY');
+        await client.query('COMMIT');
         res.status(204).send();
     } catch (err) {
-        console.error('Error truncating grade_sheets table:', err.stack);
+        console.error('Error truncating tables:', err.stack);
+        await client.query('ROLLBACK');
         res.status(500).json({ error: `Failed to delete all grade sheets: ${err.message}` });
+    } finally {
+        client.release();
     }
 });
 
