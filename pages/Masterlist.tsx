@@ -126,6 +126,20 @@ const Masterlist: React.FC = () => {
                 studentScores,
                 groupFinalScore,
             };
+        }).sort((a, b) => {
+            // FIX: Sort fully assigned groups to the bottom of the list.
+            const aIsFullyAssigned = a.panel1Id && a.panel2Id;
+            const bIsFullyAssigned = b.panel1Id && b.panel2Id;
+
+            if (aIsFullyAssigned && !bIsFullyAssigned) {
+                return 1; // 'a' goes after 'b'
+            }
+            if (!aIsFullyAssigned && bIsFullyAssigned) {
+                return -1; // 'a' goes before 'b'
+            }
+
+            // For groups with the same assignment status, sort alphabetically by group name.
+            return a.groupName.localeCompare(b.groupName);
         });
     }, [gradeSheets]);
 
