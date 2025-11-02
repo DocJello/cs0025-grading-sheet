@@ -69,14 +69,16 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     const pollNotifications = async (userId: string) => {
         try {
             const fetchedNotifications = await api.getNotifications(userId);
-            if (fetchedNotifications.length > 0) {
-                 // Prevent showing toasts for notifications we already have in state
-                const existingIds = new Set(notifications.map(n => n.id));
-                const newNotifications = fetchedNotifications.filter(n => !existingIds.has(n.id));
+
+            // FIX: Use a functional update for `setNotifications` to avoid stale closures inside the polling interval.
+            // This ensures all logic uses the most up-to-date state.
+            setNotifications(prevNotifications => {
+                // Determine what's new by comparing fetched data with the previous state.
+                const prevIds = new Set(prevNotifications.map(n => n.id));
+                const newNotifications = fetchedNotifications.filter(n => !prevIds.has(n.id));
 
                 if (newNotifications.length > 0) {
-                    // FIX: Use persistent localStorage with a user-specific key to track shown toasts.
-                    // This prevents old notifications from reappearing as toasts on subsequent logins.
+                    // --- Side Effect 1: Show Toasts ---
                     const storageKey = `shownToastIds_${userId}`;
                     const shownToastIds = new Set(JSON.parse(localStorage.getItem(storageKey) || '[]'));
                     const notificationsForToast = newNotifications.filter(n => !shownToastIds.has(n.id));
@@ -87,20 +89,25 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
                         localStorage.setItem(storageKey, JSON.stringify(Array.from(shownToastIds)));
                     }
                     
+                    // --- Side Effect 2: Update related grade sheets in the background ---
                     const sheetIdsToUpdate = [...new Set(newNotifications.map(n => n.grade_sheet_id).filter(Boolean))] as string[];
                     if (sheetIdsToUpdate.length > 0) {
-                        const updatedSheets = await Promise.all(sheetIdsToUpdate.map(id => api.getGradeSheet(id)));
-                        setGradeSheets(prevSheets => {
-                            const sheetsMap = new Map(prevSheets.map(s => [s.id, s]));
-                            updatedSheets.forEach(us => sheetsMap.set(us.id, us));
-                            return Array.from(sheetsMap.values());
-                        });
+                        Promise.all(sheetIdsToUpdate.map(id => api.getGradeSheet(id)))
+                            .then(updatedSheets => {
+                                setGradeSheets(prevSheets => {
+                                    const sheetsMap = new Map(prevSheets.map(s => [s.id, s]));
+                                    updatedSheets.forEach(us => us && sheetsMap.set(us.id, us));
+                                    return Array.from(sheetsMap.values());
+                                });
+                            })
+                            .catch(err => console.error("Failed to auto-update sheets from notifications", err));
                     }
                 }
-                setNotifications(fetchedNotifications);
-            } else {
-                 setNotifications([]); // Clear if no unread notifications
-            }
+                
+                // The new state for notifications is always the complete list from the server,
+                // ensuring the bell count is perfectly synchronized.
+                return fetchedNotifications;
+            });
         } catch (error) {
             console.error("Failed to poll notifications", error);
         }
