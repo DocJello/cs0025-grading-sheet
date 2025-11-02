@@ -1,28 +1,7 @@
-
 import { User, GradeSheet, GradeSheetStatus, Notification } from '../types';
-
-// =====================================================================================
-// =====================================================================================
-//
-//    🛑  CRITICAL ACTION REQUIRED: CONFIGURE YOUR BACKEND URL
-//
-// =====================================================================================
-//
-//    You MUST replace the placeholder URL below with the actual URL of your backend
-//    service that you deployed on Render.
-//
-//    1. Find your backend URL on your Render.com dashboard.
-//       It will look like this: 'https://your-app-name.onrender.com'
-//
-//    2. Replace the entire string 'https://YOUR_RENDER_BACKEND_URL_HERE.onrender.com'
-//       below with YOUR real URL.
-//
-//    ✅ Your application WILL NOT WORK until you complete this step.
-//
 // =====================================================================================
 export const API_URL = 'https://cs0025-grading-sheet.onrender.com';
 // =====================================================================================
-
 
 const CURRENT_USER_KEY = 'currentUser'; // We still use localStorage for the logged-in user session
 
@@ -96,6 +75,10 @@ export const api = {
         return apiFetch(`/api/users/${userId}`, { method: 'DELETE' });
     },
 
+    deleteAllNonAdminUsers: async (): Promise<void> => {
+        return apiFetch('/api/users/all-non-admin', { method: 'DELETE' });
+    },
+
     changePassword: async (userId: string, oldPass: string, newPass: string): Promise<User> => {
         const updatedUser = await apiFetch(`/api/users/${userId}/change-password`, {
             method: 'POST',
@@ -149,6 +132,10 @@ export const api = {
 
     deleteAllGradeSheets: async (): Promise<void> => {
         return apiFetch('/api/gradesheets/all', { method: 'DELETE' });
+    },
+
+    resetAllGrades: async (): Promise<void> => {
+        return apiFetch('/api/gradesheets/reset-all', { method: 'POST' });
     },
 
     restoreData: async (backupData: { users: User[], gradeSheets: GradeSheet[] }): Promise<void> => {
