@@ -2,11 +2,11 @@
 import React from 'react';
 import { useAppContext } from '../context/AppContext';
 import { APP_NAME } from '../constants';
-import { LogoutIcon, MenuIcon } from './Icons';
+import { MenuIcon } from './Icons';
 import NotificationBell from './NotificationBell';
 
 const Header: React.FC<{ onMenuClick: () => void }> = ({ onMenuClick }) => {
-    const { currentUser, logout } = useAppContext();
+    const { currentUser } = useAppContext();
 
     if (!currentUser) return null;
 
@@ -32,13 +32,6 @@ const Header: React.FC<{ onMenuClick: () => void }> = ({ onMenuClick }) => {
                             <p className="text-sm font-medium text-gray-800">{currentUser.name}</p>
                             <p className="text-xs text-gray-500">{currentUser.role}</p>
                         </div>
-                        <button
-                            onClick={logout}
-                            className="p-2 rounded-full text-gray-500 hover:bg-gray-100 hover:text-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500"
-                            aria-label="Logout"
-                        >
-                            <LogoutIcon className="w-6 h-6" />
-                        </button>
                     </div>
                 </div>
             </div>
