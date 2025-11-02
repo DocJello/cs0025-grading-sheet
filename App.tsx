@@ -1,5 +1,4 @@
 
-
 import React, { useState, ReactNode } from 'react';
 import { AppProvider, useAppContext } from './context/AppContext';
 import { Page, UserRole } from './types';
@@ -62,45 +61,47 @@ const Sidebar: React.FC<{
                     onClick={() => setPage('dashboard')}
                     closeSidebar={closeSidebar}
                 />
-                {(isAdmin || isAdviser) && (
-                    <div>
-                        <div className="px-4 pt-4 pb-2 text-xs font-semibold text-gray-300 uppercase tracking-wider">
-                            Management
-                        </div>
-                        <div className="space-y-2">
-                             <NavLink
-                                icon={<DocumentAddIcon className="w-6 h-6" />}
-                                label="Group Management"
-                                isActive={currentPage === 'group-management'}
-                                onClick={() => setPage('group-management')}
-                                closeSidebar={closeSidebar}
-                            />
-                            <NavLink
-                                icon={<ListIcon className="w-6 h-6" />}
-                                label="Masterlist"
-                                isActive={currentPage === 'masterlist'}
-                                onClick={() => setPage('masterlist')}
-                                closeSidebar={closeSidebar}
-                            />
-                             <NavLink
-                                icon={<UsersIcon className="w-6 h-6" />}
-                                label="User Management"
-                                isActive={currentPage === 'user-management'}
-                                onClick={() => setPage('user-management')}
-                                closeSidebar={closeSidebar}
-                            />
-                        </div>
+                <div>
+                    <div className="px-4 pt-4 pb-2 text-xs font-semibold text-gray-300 uppercase tracking-wider">
+                        {(isAdmin || isAdviser) ? 'Management' : 'Settings'}
                     </div>
-                )}
+                    <div className="space-y-2">
+                        {(isAdmin || isAdviser) && (
+                            <>
+                                <NavLink
+                                    icon={<DocumentAddIcon className="w-6 h-6" />}
+                                    label="Group Management"
+                                    isActive={currentPage === 'group-management'}
+                                    onClick={() => setPage('group-management')}
+                                    closeSidebar={closeSidebar}
+                                />
+                                <NavLink
+                                    icon={<ListIcon className="w-6 h-6" />}
+                                    label="Masterlist"
+                                    isActive={currentPage === 'masterlist'}
+                                    onClick={() => setPage('masterlist')}
+                                    closeSidebar={closeSidebar}
+                                />
+                                <NavLink
+                                    icon={<UsersIcon className="w-6 h-6" />}
+                                    label="User Management"
+                                    isActive={currentPage === 'user-management'}
+                                    onClick={() => setPage('user-management')}
+                                    closeSidebar={closeSidebar}
+                                />
+                            </>
+                        )}
+                        <NavLink
+                            icon={<KeyIcon className="w-6 h-6" />}
+                            label="Change Password"
+                            isActive={currentPage === 'change-password'}
+                            onClick={() => setPage('change-password')}
+                            closeSidebar={closeSidebar}
+                        />
+                    </div>
+                </div>
             </nav>
-            <div className="mt-auto space-y-2">
-                 <NavLink
-                    icon={<KeyIcon className="w-6 h-6" />}
-                    label="Change Password"
-                    isActive={currentPage === 'change-password'}
-                    onClick={() => setPage('change-password')}
-                    closeSidebar={closeSidebar}
-                />
+            <div className="mt-auto">
                 <button
                     onClick={logout}
                     className="w-full flex items-center px-4 py-3 text-sm font-medium rounded-lg transition-colors duration-200 text-gray-200 hover:bg-green-600 hover:text-white"
