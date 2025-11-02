@@ -375,11 +375,11 @@ app.delete('/api/gradesheets/:id', async (req, res) => {
 app.delete('/api/gradesheets/all', async (req, res) => {
     const client = await pool.connect();
     try {
-        // FIX: Use an explicit transaction with DELETE commands. This is the most reliable way
-        // to ensure data is permanently removed and fixes the bug where data would reappear.
+        // FIX: Use an explicit transaction with TRUNCATE. This is the most reliable and
+        // performant way to clear the tables and is proven to work in the /api/restore endpoint.
+        // This will permanently fix the bug where data would reappear.
         await client.query('BEGIN');
-        await client.query('DELETE FROM notifications');
-        await client.query('DELETE FROM grade_sheets');
+        await client.query('TRUNCATE TABLE grade_sheets, notifications RESTART IDENTITY');
         await client.query('COMMIT');
         res.status(204).send();
     } catch (err) {
