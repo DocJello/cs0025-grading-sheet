@@ -393,14 +393,19 @@ app.delete('/api/gradesheets/all', async (req, res) => {
 
 app.post('/api/gradesheets/reset-all', async (req, res) => {
     try {
-        // This sets grades to null and status to Not Started for all sheets
+        // This resets all grading-related data for a new cycle
         await pool.query(
             `UPDATE grade_sheets SET 
                 "panel1Grades" = NULL, 
                 "panel2Grades" = NULL,
-                status = 'Not Started'`
+                status = 'Not Started',
+                "panel1Id" = NULL,
+                "panel2Id" = NULL,
+                "selectedTitle" = 'Untitled Project',
+                date = 'Not Set',
+                venue = 'Not Set'`
         );
-        res.status(200).json({ message: 'All grades have been reset.' });
+        res.status(200).json({ message: 'All grades and assignments have been reset.' });
     } catch (err) {
         res.status(500).json({ error: err.message });
     }
