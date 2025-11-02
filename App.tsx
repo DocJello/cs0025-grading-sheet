@@ -1,4 +1,3 @@
-
 import React, { useState, ReactNode } from 'react';
 import { AppProvider, useAppContext } from './context/AppContext';
 import { Page, UserRole } from './types';
@@ -11,10 +10,11 @@ import UserManagement from './pages/UserManagement';
 import Masterlist from './pages/Masterlist';
 import ChangePassword from './pages/ChangePassword';
 import GroupManagement from './pages/GroupManagement';
+import Maintenance from './pages/Maintenance';
 import { ToastContainer } from './components/Toast';
 
 // Import icons for sidebar
-import { DashboardIcon, UsersIcon, ListIcon, DocumentAddIcon, KeyIcon, LogoutIcon } from './components/Icons';
+import { DashboardIcon, UsersIcon, ListIcon, DocumentAddIcon, KeyIcon, LogoutIcon, WrenchScrewdriverIcon } from './components/Icons';
 import Header from './components/Header';
 import Footer from './components/Footer';
 
@@ -61,45 +61,70 @@ const Sidebar: React.FC<{
                     onClick={() => setPage('dashboard')}
                     closeSidebar={closeSidebar}
                 />
-                <div>
-                    <div className="px-4 pt-4 pb-2 text-xs font-semibold text-gray-300 uppercase tracking-wider">
-                        {(isAdmin || isAdviser) ? 'Management' : 'Settings'}
+                
+                {(isAdmin || isAdviser) && (
+                    <div>
+                        <div className="px-4 pt-4 pb-2 text-xs font-semibold text-gray-300 uppercase tracking-wider">
+                            Management
+                        </div>
+                        <div className="space-y-2">
+                            <NavLink
+                                icon={<DocumentAddIcon className="w-6 h-6" />}
+                                label="Group Management"
+                                isActive={currentPage === 'group-management'}
+                                onClick={() => setPage('group-management')}
+                                closeSidebar={closeSidebar}
+                            />
+                            <NavLink
+                                icon={<ListIcon className="w-6 h-6" />}
+                                label="Masterlist"
+                                isActive={currentPage === 'masterlist'}
+                                onClick={() => setPage('masterlist')}
+                                closeSidebar={closeSidebar}
+                            />
+                            <NavLink
+                                icon={<UsersIcon className="w-6 h-6" />}
+                                label="User Management"
+                                isActive={currentPage === 'user-management'}
+                                onClick={() => setPage('user-management')}
+                                closeSidebar={closeSidebar}
+                            />
+                            {isAdmin && (
+                                <NavLink
+                                    icon={<WrenchScrewdriverIcon className="w-6 h-6" />}
+                                    label="System Maintenance"
+                                    isActive={currentPage === 'maintenance'}
+                                    onClick={() => setPage('maintenance')}
+                                    closeSidebar={closeSidebar}
+                                />
+                            )}
+                             <NavLink
+                                icon={<KeyIcon className="w-6 h-6" />}
+                                label="Change Password"
+                                isActive={currentPage === 'change-password'}
+                                onClick={() => setPage('change-password')}
+                                closeSidebar={closeSidebar}
+                            />
+                        </div>
                     </div>
-                    <div className="space-y-2">
-                        {(isAdmin || isAdviser) && (
-                            <>
-                                <NavLink
-                                    icon={<DocumentAddIcon className="w-6 h-6" />}
-                                    label="Group Management"
-                                    isActive={currentPage === 'group-management'}
-                                    onClick={() => setPage('group-management')}
-                                    closeSidebar={closeSidebar}
-                                />
-                                <NavLink
-                                    icon={<ListIcon className="w-6 h-6" />}
-                                    label="Masterlist"
-                                    isActive={currentPage === 'masterlist'}
-                                    onClick={() => setPage('masterlist')}
-                                    closeSidebar={closeSidebar}
-                                />
-                                <NavLink
-                                    icon={<UsersIcon className="w-6 h-6" />}
-                                    label="User Management"
-                                    isActive={currentPage === 'user-management'}
-                                    onClick={() => setPage('user-management')}
-                                    closeSidebar={closeSidebar}
-                                />
-                            </>
-                        )}
-                        <NavLink
-                            icon={<KeyIcon className="w-6 h-6" />}
-                            label="Change Password"
-                            isActive={currentPage === 'change-password'}
-                            onClick={() => setPage('change-password')}
-                            closeSidebar={closeSidebar}
-                        />
+                )}
+
+                {!(isAdmin || isAdviser) && (
+                     <div>
+                        <div className="px-4 pt-4 pb-2 text-xs font-semibold text-gray-300 uppercase tracking-wider">
+                            Settings
+                        </div>
+                        <div className="space-y-2">
+                             <NavLink
+                                icon={<KeyIcon className="w-6 h-6" />}
+                                label="Change Password"
+                                isActive={currentPage === 'change-password'}
+                                onClick={() => setPage('change-password')}
+                                closeSidebar={closeSidebar}
+                            />
+                        </div>
                     </div>
-                </div>
+                )}
             </nav>
             <div className="mt-auto">
                 <button
@@ -144,6 +169,8 @@ const AppContent: React.FC = () => {
                 return <Masterlist />;
             case 'group-management':
                 return <GroupManagement setPage={setPage} />;
+            case 'maintenance':
+                return <Maintenance />;
             case 'change-password':
                 return <ChangePassword />;
             default:
