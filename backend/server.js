@@ -354,24 +354,40 @@ app.put('/api/gradesheets/:id', async (req, res) => {
 
 app.delete('/api/gradesheets/:id', async (req, res) => {
     const { id } = req.params;
+    const client = await pool.connect();
     try {
-        await pool.query('DELETE FROM grade_sheets WHERE id = $1', [id]);
+        // FIX: Use an explicit transaction to ensure both deletions succeed or fail together.
+        await client.query('BEGIN');
+        // Delete notifications associated with this grade sheet first
+        await client.query('DELETE FROM notifications WHERE grade_sheet_id = $1', [id]);
+        // Then delete the grade sheet itself
+        await client.query('DELETE FROM grade_sheets WHERE id = $1', [id]);
+        await client.query('COMMIT');
         res.status(204).send();
     } catch (err) {
+        await client.query('ROLLBACK');
         res.status(500).json({ error: err.message });
+    } finally {
+        client.release();
     }
 });
 
 app.delete('/api/gradesheets/all', async (req, res) => {
+    const client = await pool.connect();
     try {
-        // FIX: Replaced the failing transaction block with two separate, direct DELETE queries.
-        // This mirrors the working single-delete method and ensures permanent data removal.
-        await pool.query('DELETE FROM notifications');
-        await pool.query('DELETE FROM grade_sheets');
+        // FIX: Use an explicit transaction with DELETE commands. This is the most reliable way
+        // to ensure data is permanently removed and fixes the bug where data would reappear.
+        await client.query('BEGIN');
+        await client.query('DELETE FROM notifications');
+        await client.query('DELETE FROM grade_sheets');
+        await client.query('COMMIT');
         res.status(204).send();
     } catch (err) {
+        await client.query('ROLLBACK');
         console.error('Error deleting all grade sheets:', err.stack);
         res.status(500).json({ error: `Failed to delete all grade sheets: ${err.message}` });
+    } finally {
+        client.release();
     }
 });
 
