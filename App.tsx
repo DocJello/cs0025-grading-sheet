@@ -14,7 +14,7 @@ import Maintenance from './pages/Maintenance';
 import { ToastContainer } from './components/Toast';
 
 // Import icons for sidebar
-import { DashboardIcon, UsersIcon, ListIcon, DocumentAddIcon, KeyIcon, LogoutIcon, CogIcon } from './components/Icons';
+import { DashboardIcon, UsersIcon, ListIcon, DocumentAddIcon, KeyIcon, LogoutIcon, ServerStackIcon } from './components/Icons';
 import Header from './components/Header';
 import Footer from './components/Footer';
 
@@ -91,7 +91,7 @@ const Sidebar: React.FC<{
                             />
                             {isAdmin && (
                                 <NavLink
-                                    icon={<CogIcon className="w-6 h-6" />}
+                                    icon={<ServerStackIcon className="w-6 h-6" />}
                                     label="System Maintenance"
                                     isActive={currentPage === 'maintenance'}
                                     onClick={() => setPage('maintenance')}
