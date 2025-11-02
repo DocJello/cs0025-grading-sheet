@@ -1,4 +1,3 @@
-
 import React, { useMemo, useState, useEffect } from 'react';
 import { useAppContext } from '../context/AppContext';
 import { GradeSheet, PanelGrades, Student, UserRole, GradeSheetStatus } from '../types';
@@ -310,17 +309,17 @@ const Masterlist: React.FC = () => {
                         <tr>
                             <th rowSpan={2} className="px-4 py-3 text-left font-semibold uppercase tracking-wider">Group Name</th>
                             <th rowSpan={2} className="px-4 py-3 text-left font-semibold uppercase tracking-wider">Proponents</th>
-                            <th rowSpan={2} className="px-4 py-3 text-left font-semibold uppercase tracking-wider border-l border-green-800">Assign Panel</th>
+                            <th rowSpan={2} className="px-4 py-3 text-left font-semibold uppercase tracking-wider border-l border-green-800 w-72">Assign Panel</th>
                             <th colSpan={2} className="px-4 py-3 text-center font-semibold uppercase tracking-wider border-l border-green-800">Panel 1 (50%)</th>
                             <th colSpan={2} className="px-4 py-3 text-center font-semibold uppercase tracking-wider border-l border-green-800">Panel 2 (50%)</th>
-                            <th rowSpan={2} className="px-4 py-3 text-center font-semibold uppercase tracking-wider border-l border-green-800">Total</th>
+                            <th rowSpan={2} className="px-4 py-3 text-center font-semibold uppercase tracking-wider border-l border-green-800 w-32">Total</th>
                             <th rowSpan={2} className="px-4 py-3 text-center font-semibold uppercase tracking-wider border-l border-green-800">Final Score</th>
                         </tr>
                         <tr>
                             <th className="px-2 py-2 text-center font-semibold uppercase tracking-wider border-l border-t border-green-800">Title Defense (70%)</th>
-                            <th className="px-2 py-2 text-center font-semibold uppercase tracking-wider border-t border-green-800">Individual (30%)</th>
+                            <th className="px-2 py-2 text-center font-semibold uppercase tracking-wider border-t border-green-800 w-32">Individual (30%)</th>
                             <th className="px-2 py-2 text-center font-semibold uppercase tracking-wider border-l border-t border-green-800">Title Defense (70%)</th>
-                            <th className="px-2 py-2 text-center font-semibold uppercase tracking-wider border-t border-green-800">Individual (30%)</th>
+                            <th className="px-2 py-2 text-center font-semibold uppercase tracking-wider border-t border-green-800 w-32">Individual (30%)</th>
                         </tr>
                     </thead>
                     <tbody className="bg-white divide-y divide-gray-200">
