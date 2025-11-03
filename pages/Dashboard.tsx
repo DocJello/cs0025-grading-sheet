@@ -72,8 +72,8 @@ const GradeSheetCard: React.FC<{ sheet: GradeSheet, onView: () => void }> = ({ s
     };
 
     return (
-        <div className="bg-white rounded-lg shadow-md hover:shadow-lg transition-shadow duration-300 overflow-hidden">
-            <div className="p-5">
+        <div className="bg-white rounded-lg shadow-md hover:shadow-lg transition-shadow duration-300 overflow-hidden flex flex-col">
+            <div className="p-5 flex-grow">
                 <div className="flex justify-between items-start">
                     <h3 className="text-lg font-bold text-gray-800">{sheet.groupName}</h3>
                     <div className="flex items-center space-x-2 flex-shrink-0">
@@ -87,20 +87,18 @@ const GradeSheetCard: React.FC<{ sheet: GradeSheet, onView: () => void }> = ({ s
                         </span>
                     </div>
                 </div>
-                <p className="text-base text-gray-800 mt-1 truncate">{sheet.selectedTitle}</p>
+                <p className="text-base text-gray-800 mt-1 truncate">{sheet.selectedTitle || 'TBA'}</p>
                 <div className="mt-4 text-sm text-gray-700">
                     <p><strong>Panel 1:</strong> {findUserById(sheet.panel1Id)?.name || 'N/A'}</p>
                     <p><strong>Panel 2:</strong> {findUserById(sheet.panel2Id)?.name || 'N/A'}</p>
                 </div>
             </div>
-            <div className="bg-gray-50 px-5 py-3">
-                <button
-                    onClick={onView}
-                    className="w-full text-sm font-medium text-green-700 hover:text-green-800 transition-colors"
-                >
-                    View Details
-                </button>
-            </div>
+            <button
+                onClick={onView}
+                className="w-full bg-green-600 text-white font-bold py-3 text-center hover:bg-green-700 transition-colors"
+            >
+                Go to Grading Sheet
+            </button>
         </div>
     );
 };
