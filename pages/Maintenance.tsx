@@ -9,8 +9,8 @@ const Maintenance: React.FC = () => {
 
     const modals = {
         resetGrades: {
-            title: 'Confirm Reset Grades and Panel Assignments',
-            description: "This will remove all submitted scores, comments, and panel assignments from every group, resetting their status to 'Not Started'. The group names, proponent lists, and project details (Title, Date, Venue) will be preserved. This is useful for starting a new grading cycle.",
+            title: 'Confirm Reset Grades',
+            description: "This will remove all submitted scores and comments from every group and clear all panel assignments, resetting group status to 'Not Started'. The group names, proponent lists, and project details will be preserved. This is useful for starting a new grading cycle.",
             prompt: 'RESET GRADES',
             action: async () => {
                 await resetAllGrades();
@@ -144,7 +144,7 @@ const Maintenance: React.FC = () => {
                                 Wipes all scores, comments, and panel assignments for all groups. Project details, group names, and proponents are kept. Useful for starting a new grading cycle.
                             </p>
                             <button onClick={() => setShowModal('resetGrades')} className="w-full px-4 py-2 bg-red-700 text-white font-medium rounded-md hover:bg-red-800">
-                                Reset Grades...
+                                Reset Grades
                             </button>
                         </div>
 
