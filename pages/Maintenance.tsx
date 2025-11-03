@@ -9,12 +9,12 @@ const Maintenance: React.FC = () => {
 
     const modals = {
         resetGrades: {
-            title: 'Confirm Reset All Grades & Assignments',
-            description: "This will remove all submitted scores, comments, panel assignments, and project details (Title, Date, Venue) from every group, resetting their status to 'Not Started'. The group names and proponent lists will be preserved. This action is useful for starting a new grading cycle with the same groups.",
+            title: 'Confirm Reset Grades and Panel Assignments',
+            description: "This will remove all submitted scores, comments, and panel assignments from every group, resetting their status to 'Not Started'. The group names, proponent lists, and project details (Title, Date, Venue) will be preserved. This is useful for starting a new grading cycle.",
             prompt: 'RESET GRADES',
             action: async () => {
                 await resetAllGrades();
-                alert('All grades and assignments have been reset successfully.');
+                alert('All grades and panel assignments have been reset successfully.');
             }
         },
         deleteGroups: {
@@ -139,12 +139,12 @@ const Maintenance: React.FC = () => {
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         {/* Reset Grades */}
                         <div className="bg-red-50 border-l-4 border-red-500 p-4 rounded-md">
-                            <h4 className="text-lg font-bold text-red-800">Reset Grades & Assignments</h4>
+                            <h4 className="text-lg font-bold text-red-800">Reset Grades</h4>
                             <p className="text-sm text-red-900 mt-2 mb-4">
-                                Wipes all scores, comments, panel assignments, and project details. Keeps group names and proponents. Useful for starting a new grading cycle.
+                                Wipes all scores, comments, and panel assignments for all groups. Project details, group names, and proponents are kept. Useful for starting a new grading cycle.
                             </p>
                             <button onClick={() => setShowModal('resetGrades')} className="w-full px-4 py-2 bg-red-700 text-white font-medium rounded-md hover:bg-red-800">
-                                Reset All...
+                                Reset Grades...
                             </button>
                         </div>
 
