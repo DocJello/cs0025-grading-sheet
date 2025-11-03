@@ -352,12 +352,12 @@ const Masterlist: React.FC = () => {
                                                     <div>
                                                         <label className="block text-sm font-semibold text-gray-600 mb-1">Panel 1</label>
                                                         <select
-                                                            value={group.panel1Id}
+                                                            value={group.panel1Id || ''}
                                                             onChange={(e) => handlePanelChange(group.id, 'panel1Id', e.target.value)}
                                                             className="w-full p-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-green-500 focus:border-green-500"
                                                             aria-label={`Assign Panel 1 for ${group.groupName}`}
                                                         >
-                                                            <option value="" disabled>-- Select --</option>
+                                                            <option value="" disabled>-- Select a Panel --</option>
                                                             {panelOptions.map(opt => (
                                                                 <option key={opt.id} value={opt.id}>{opt.name}</option>
                                                             ))}
@@ -366,12 +366,12 @@ const Masterlist: React.FC = () => {
                                                     <div>
                                                         <label className="block text-sm font-semibold text-gray-600 mb-1">Panel 2</label>
                                                         <select
-                                                            value={group.panel2Id}
+                                                            value={group.panel2Id || ''}
                                                             onChange={(e) => handlePanelChange(group.id, 'panel2Id', e.target.value)}
                                                             className="w-full p-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-green-500 focus:border-green-500"
                                                             aria-label={`Assign Panel 2 for ${group.groupName}`}
                                                         >
-                                                            <option value="" disabled>-- Select --</option>
+                                                            <option value="" disabled>-- Select a Panel --</option>
                                                             {panelOptions.map(opt => (
                                                                 <option key={opt.id} value={opt.id}>{opt.name}</option>
                                                             ))}
