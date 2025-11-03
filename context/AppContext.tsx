@@ -31,6 +31,42 @@ interface AppContextType {
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
 
+// FIX: Add a new StartupLoadingModal component to provide better feedback during backend cold starts.
+const StartupLoadingModal: React.FC = () => {
+    const [progress, setProgress] = useState(0);
+
+    useEffect(() => {
+        // Using a short timeout to start the animation after the component mounts,
+        // which ensures the CSS transition is applied correctly.
+        const timer = setTimeout(() => {
+            setProgress(95); // Animate to 95% over a long duration to simulate loading.
+        }, 100);
+
+        return () => clearTimeout(timer);
+    }, []);
+
+    return (
+        <div className="fixed inset-0 bg-gray-900 bg-opacity-75 flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-lg shadow-xl p-8 max-w-sm w-full text-center">
+                <svg className="animate-spin h-10 w-10 text-green-600 mx-auto mb-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+                <h3 className="text-xl font-bold text-gray-800">Waking Up Server...</h3>
+                <p className="text-gray-600 mt-2 mb-6 text-sm">
+                    Our hosting service is spinning up. This can take up to a minute on the first load. Please wait, the app will appear automatically.
+                </p>
+                <div className="w-full bg-gray-200 rounded-full h-4 overflow-hidden">
+                    <div
+                        className="bg-green-500 h-4 rounded-full transition-all duration-[45000ms] ease-linear"
+                        style={{ width: `${progress}%` }}
+                    ></div>
+                </div>
+            </div>
+        </div>
+    );
+};
+
 // FIX: The API_URL is now correctly configured, so this error component and the runtime check are no longer needed.
 // This resolves the TypeScript error about comparing two non-overlapping string literal types.
 export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
@@ -303,14 +339,9 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         markNotificationsAsRead,
     };
     
+    // FIX: Replace the simple "Loading..." text with the new progress bar modal.
     if (isLoading) {
-        return (
-            <div className="min-h-screen flex items-center justify-center bg-gray-50">
-                <div className="text-center">
-                    <p className="text-xl font-semibold text-gray-700">Loading Application...</p>
-                </div>
-            </div>
-        );
+        return <StartupLoadingModal />;
     }
 
     return <AppContext.Provider value={value}>{children}</AppContext.Provider>;
