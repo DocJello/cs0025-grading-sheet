@@ -1,3 +1,4 @@
+
 const express = require('express');
 const cors = require('cors');
 const { Pool } = require('pg');
@@ -6,8 +7,12 @@ const app = express();
 const port = process.env.PORT || 3001;
 
 // --- Database Connection ---
+// FIX: Added fallback connection string using the credentials you provided.
+// This ensures the backend connects to the correct new database even if the Render Environment Variable wasn't updated correctly.
+const connectionString = process.env.DATABASE_URL || 'postgresql://cs0025_grading_sheet_db_lls3_user:yaoUbz1mceXbenI0QlyFENrmvZUP9eil@dpg-d4fh2kchg0os7390jup0-a/cs0025_grading_sheet_db_lls3';
+
 const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
+  connectionString: connectionString,
   ssl: {
     rejectUnauthorized: false
   }
@@ -123,9 +128,12 @@ app.post('/api/login', async (req, res) => {
         if (result.rows.length > 0) {
             res.json(result.rows[0]);
         } else {
+            // Debug log for failed login attempts
+            console.log(`Failed login attempt for ${email}. Rows found: ${result.rows.length}`);
             res.status(401).json({ error: 'Invalid credentials' });
         }
     } catch (err) {
+        console.error('Login error:', err);
         res.status(500).json({ error: err.message });
     }
 });
