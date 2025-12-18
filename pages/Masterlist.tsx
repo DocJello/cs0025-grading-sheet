@@ -127,18 +127,16 @@ const Masterlist: React.FC = () => {
                 groupFinalScore,
             };
         }).sort((a, b) => {
-            // FIX: Sort fully assigned groups to the bottom of the list.
             const aIsFullyAssigned = a.panel1Id && a.panel2Id;
             const bIsFullyAssigned = b.panel1Id && b.panel2Id;
 
             if (aIsFullyAssigned && !bIsFullyAssigned) {
-                return 1; // 'a' goes after 'b'
+                return 1;
             }
             if (!aIsFullyAssigned && bIsFullyAssigned) {
-                return -1; // 'a' goes before 'b'
+                return -1;
             }
 
-            // For groups with the same assignment status, sort alphabetically by group name.
             return a.groupName.localeCompare(b.groupName);
         });
     }, [gradeSheets]);
@@ -155,6 +153,8 @@ const Masterlist: React.FC = () => {
                         <th colspan="2" style="padding: 8px; border: 1px solid #ddd;">PANEL 2 (50%)</th>
                         <th rowspan="2" style="padding: 8px; border: 1px solid #ddd;">TOTAL</th>
                         <th rowspan="2" style="padding: 8px; border: 1px solid #ddd;">FINAL SCORE</th>
+                        <th rowspan="2" style="padding: 8px; border: 1px solid #ddd;">PANEL 1 COMMENTS</th>
+                        <th rowspan="2" style="padding: 8px; border: 1px solid #ddd;">PANEL 2 COMMENTS</th>
                     </tr>
                     <tr>
                         <th style="padding: 8px; border: 1px solid #ddd;">TITLE DEFENSE (70%)</th>
@@ -170,6 +170,8 @@ const Masterlist: React.FC = () => {
             const numProponents = group.studentScores.length || 1;
             const panel1Name = findUserById(group.panel1Id)?.name || 'N/A';
             const panel2Name = findUserById(group.panel2Id)?.name || 'N/A';
+            const p1Comments = group.panel1Grades?.comments || 'None';
+            const p2Comments = group.panel2Grades?.comments || 'None';
     
             group.studentScores.forEach((student, index) => {
                 tableHtml += `<tr style="font-size: 9pt;">`;
@@ -192,6 +194,8 @@ const Masterlist: React.FC = () => {
                 tableHtml += `<td style="padding: 8px; text-align: center; font-weight: bold;">${student.finalScore.toFixed(2)}</td>`;
                 if (index === 0) {
                     tableHtml += `<td rowspan="${numProponents}" style="padding: 8px; text-align: center; vertical-align: middle; font-weight: bold; font-size: 1.2em;">${group.groupFinalScore.toFixed(2)}</td>`;
+                    tableHtml += `<td rowspan="${numProponents}" style="padding: 8px; vertical-align: top; font-size: 8pt;">${p1Comments}</td>`;
+                    tableHtml += `<td rowspan="${numProponents}" style="padding: 8px; vertical-align: top; font-size: 8pt;">${p2Comments}</td>`;
                 }
                 tableHtml += `</tr>`;
             });
@@ -215,9 +219,9 @@ const Masterlist: React.FC = () => {
                     <![endif]-->
                     <style>
                         @page Section1 {
-                            size: 11.0in 8.5in;
+                            size: 14.0in 8.5in;
                             mso-page-orientation: landscape;
-                            margin: 1.0in 1.0in 1.0in 1.0in;
+                            margin: 0.5in 0.5in 0.5in 0.5in;
                         }
                         div.Section1 {
                             page: Section1;
@@ -252,7 +256,9 @@ const Masterlist: React.FC = () => {
             'Panel 2 Title Defense (70%)', 
             'Panel 2 Individual (30%)', 
             'Proponent Final Score (Total)', 
-            'Group Final Score'
+            'Group Final Score',
+            'Panel 1 Comments',
+            'Panel 2 Comments'
         ];
         
         const csvRows = [headers.join(',')];
@@ -260,6 +266,8 @@ const Masterlist: React.FC = () => {
         masterlistData.forEach(group => {
             const panel1Name = findUserById(group.panel1Id)?.name || 'N/A';
             const panel2Name = findUserById(group.panel2Id)?.name || 'N/A';
+            const p1Comments = (group.panel1Grades?.comments || '').replace(/"/g, '""');
+            const p2Comments = (group.panel2Grades?.comments || '').replace(/"/g, '""');
             const panelInfo = `Panel 1: ${panel1Name.replace(/"/g, '""')}; Panel 2: ${panel2Name.replace(/"/g, '""')}`;
 
             group.studentScores.forEach(student => {
@@ -272,7 +280,9 @@ const Masterlist: React.FC = () => {
                     student.p2Title > 0 ? student.p2Title.toFixed(2) : '0.00',
                     student.p2Indiv > 0 ? student.p2Indiv.toFixed(2) : '0.00',
                     student.finalScore.toFixed(2),
-                    group.groupFinalScore.toFixed(2)
+                    group.groupFinalScore.toFixed(2),
+                    `"${p1Comments}"`,
+                    `"${p2Comments}"`
                 ];
                 csvRows.push(row.join(','));
             });
@@ -328,6 +338,8 @@ const Masterlist: React.FC = () => {
                             <th colSpan={2} className="px-4 py-3 text-center font-semibold uppercase tracking-wider border-l border-green-800">Panel 2 (50%)</th>
                             <th rowSpan={2} className="px-4 py-3 text-center font-semibold uppercase tracking-wider border-l border-green-800 w-32">Total</th>
                             <th rowSpan={2} className="px-4 py-3 text-center font-semibold uppercase tracking-wider border-l border-green-800">Final Score</th>
+                            <th rowSpan={2} className="px-4 py-3 text-center font-semibold uppercase tracking-wider border-l border-green-800 min-w-[200px]">P1 Comments</th>
+                            <th rowSpan={2} className="px-4 py-3 text-center font-semibold uppercase tracking-wider border-l border-green-800 min-w-[200px]">P2 Comments</th>
                         </tr>
                         <tr>
                             <th className="px-2 py-2 text-center font-semibold uppercase tracking-wider border-l border-t border-green-800">Title Defense (70%)</th>
@@ -404,8 +416,20 @@ const Masterlist: React.FC = () => {
                                         <td className="px-4 py-2 text-center font-bold text-green-800 border-r">{student.finalScore.toFixed(2)}</td>
 
                                         {index === 0 && (
-                                            <td rowSpan={group.proponents.length} className="px-4 py-4 align-middle text-center font-extrabold text-xl text-green-700">
+                                            <td rowSpan={group.proponents.length} className="px-4 py-4 align-middle text-center font-extrabold text-xl text-green-700 border-r">
                                                 {group.groupFinalScore.toFixed(2)}
+                                            </td>
+                                        )}
+
+                                        {index === 0 && (
+                                            <td rowSpan={group.proponents.length} className="px-4 py-4 align-top text-xs text-gray-700 border-r italic bg-gray-50 max-w-xs break-words">
+                                                {group.panel1Grades?.comments || <span className="text-gray-400">No comments yet</span>}
+                                            </td>
+                                        )}
+
+                                        {index === 0 && (
+                                            <td rowSpan={group.proponents.length} className="px-4 py-4 align-top text-xs text-gray-700 italic bg-gray-50 max-w-xs break-words">
+                                                {group.panel2Grades?.comments || <span className="text-gray-400">No comments yet</span>}
                                             </td>
                                         )}
                                     </tr>
@@ -414,7 +438,7 @@ const Masterlist: React.FC = () => {
                         ))}
                          {masterlistData.length === 0 && (
                             <tr>
-                                <td colSpan={10} className="text-center py-10 text-gray-700 text-lg">No groups have been created yet. Go to Group Management to add a group.</td>
+                                <td colSpan={12} className="text-center py-10 text-gray-700 text-lg">No groups have been created yet. Go to Group Management to add a group.</td>
                             </tr>
                         )}
                     </tbody>
